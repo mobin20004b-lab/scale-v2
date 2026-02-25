@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-const prisma = new PrismaClient();
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -28,14 +27,21 @@ export async function POST(request: Request) {
   const data = await request.json();
   
   try {
-    const unknownBarcode = await prisma.unknownBarcode.update({
-      where: { id: data.id },
-      data: {
-        status: data.status, // TEMP_RECEIVING, MAPPED
-        resolvedAt: new Date(),
-        resolvedTo: data.productId,
-      }
-    });
+    const unknownBarcode = data.id
+      ? await prisma.unknownBarcode.update({
+          where: { id: data.id },
+          data: {
+            status: data.status || "MAPPED",
+            resolvedAt: new Date(),
+            resolvedTo: data.productId,
+          },
+        })
+      : await prisma.unknownBarcode.create({
+          data: {
+            barcode: data.barcode,
+            status: "OPEN",
+          },
+        });
 
     return NextResponse.json(unknownBarcode);
   } catch (error) {
