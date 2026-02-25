@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CEO
+  WAREHOUSE_MANAGER
+  PICKER
+  ADMIN
+}
+
+enum LedgerType {
+  STOCK_IN
+  STOCK_IN_UNDO
+  STOCK_OUT
+  STOCK_OUT_UNDO
+}
+
+enum UnknownBarcodeStatus {
+  OPEN
+  TEMP_RECEIVING
+  MAPPED
+}
+
+enum CommandStatus {
+  PENDING
+  SENT
+  ACKED
+  FAILED
+  EXPIRED
+}
+
+enum PrintJobStatus {
+  QUEUED
+  SENT
+  FAILED
+  REPRINT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  name         String
+  role         UserRole
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  activities   ActivityLog[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  nameFa        String
+  nameEn        String?
+  descriptionFa String?
+  descriptionEn String?
+  category      String
+  unit          String
+  barcode       String   @unique
+  qrCode        String   @unique
+  deletedAt     DateTime?
+  deleteCommitAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  ledgerEntries InventoryLedger[]
+}
+
+model Warehouse {
+  id         String   @id @default(cuid())
+  title      String
+  code       String   @unique
+  archivedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  scales     Scale[]
+}
+
+model Scale {
+  id            String   @id @default(cuid())
+  name          String
+  serialNumber  String   @unique
+  apiToken      String
+  model         String?
+  unit          String   @default("kg")
+  precision     Int      @default(2)
+  heartbeatSec  Int      @default(15)
+  printerType   String   @default("TSPL")
+  lastWeight    Float?
+  isStable      Boolean  @default(false)
+  uptimeSec     Int      @default(0)
+  lastSeenAt    DateTime?
+  createdAt     DateTime @default(now())
+  warehouseId   String?
+  warehouse     Warehouse? @relation(fields: [warehouseId], references: [id])
+  commands      ScaleCommand[]
+  printJobs     PrintJob[]
+}
+
+model StockIn {
+  id            String   @id @default(cuid())
+  productId     String
+  warehouseId   String
+  scaleId       String?
+  qty           Float
+  weight        Float
+  source        String   @default("MANUAL")
+  createdAt     DateTime @default(now())
+
+  @@index([productId, warehouseId])
+}
+
+model StockOut {
+  id            String   @id @default(cuid())
+  productId     String
+  warehouseId   String
+  qty           Float
+  barcode       String
+  createdAt     DateTime @default(now())
+
+  @@index([productId, warehouseId])
+}
+
+model InventoryLedger {
+  id            String   @id @default(cuid())
+  type          LedgerType
+  productId     String
+  warehouseId   String
+  refId         String
+  qty           Float
+  createdAt     DateTime @default(now())
+  product       Product  @relation(fields: [productId], references: [id])
+}
+
+model UnknownBarcodeEvent {
+  id          String   @id @default(cuid())
+  barcode     String
+  status      UnknownBarcodeStatus @default(OPEN)
+  note        String?
+  createdAt   DateTime @default(now())
+}
+
+model ScaleCommand {
+  id          String   @id @default(cuid())
+  scaleId     String
+  command     String
+  payload     Json
+  status      CommandStatus @default(PENDING)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  scale       Scale    @relation(fields: [scaleId], references: [id])
+}
+
+model PrintJob {
+  id          String   @id @default(cuid())
+  scaleId     String
+  labelData   Json
+  status      PrintJobStatus @default(QUEUED)
+  attempts    Int      @default(0)
+  createdAt   DateTime @default(now())
+  scale       Scale    @relation(fields: [scaleId], references: [id])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorId     String
+  action      String
+  entity      String
+  details     Json
+  createdAt   DateTime @default(now())
+  actor       User     @relation(fields: [actorId], references: [id])
+}
