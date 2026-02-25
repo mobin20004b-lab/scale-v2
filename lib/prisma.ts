@@ -2,13 +2,20 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
 
 declare global {
+  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
 }
 
 const prismaClientSingleton = () => {
-const adapter = new PrismaPostgresAdapter({
-  connectionString: process.env.PRISMA_DIRECT_TCP_URL!,
-});
+  const connectionString = process.env.PRISMA_DIRECT_TCP_URL ?? process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('Missing database connection string. Set PRISMA_DIRECT_TCP_URL or DATABASE_URL.');
+  }
+
+  const adapter = new PrismaPostgresAdapter({
+    connectionString,
+  });
 
   return new PrismaClient({ adapter });
 };
