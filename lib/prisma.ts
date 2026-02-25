@@ -7,7 +7,7 @@ declare global {
 
 const prismaClientSingleton = () => {
 const adapter = new PrismaPostgresAdapter({
-  connectionString: process.env.PRISMA_DIRECT_TCP_URL!,
+  connectionString: process.env.DATABASE_URL!,
 });
 
   return new PrismaClient({ adapter });
