@@ -29,8 +29,13 @@
         </p>
         <p><strong>SSID:</strong> {{ status.sta_ssid || '-' }}</p>
         <p><strong>IP Address:</strong> {{ status.sta_connected ? status.sta_ip : '-' }}</p>
-        <p><strong>Signal:</strong> {{ status.sta_connected ? `${status.rssi} dBm` : '-' }}</p>
+        <p><strong>Signal:</strong> {{ status.sta_connected ? `${status.rssi} dBm (${signalQuality}%)` : '-' }}</p>
+        <p><strong>Channel:</strong> {{ status.wifi_channel || '-' }}</p>
         <p><strong>Disconnect Reason:</strong> {{ status.last_disconnect_reason || 'none' }}</p>
+        <p>
+          <strong>RGB LED:</strong>
+          <Tag :value="status.led_state || 'unknown'" :severity="ledSeverity" />
+        </p>
       </template>
     </Card>
 
@@ -38,11 +43,49 @@
       <template #title>Diagnostics</template>
       <template #content>
         <p><strong>Uptime:</strong> {{ uptimeText }}</p>
+        <p><strong>Chip temp:</strong> {{ formatTemperature(status.chip_temp_c) }}</p>
+        <p><strong>Heap free:</strong> {{ formatBytes(status.free_heap_bytes) }}</p>
         <p><strong>Connect timeout:</strong> {{ status.wifi_timeout_ms || '-' }} ms</p>
         <p><strong>Reconnect interval:</strong> {{ status.reconnect_interval_ms || '-' }} ms</p>
         <p><strong>Connection attempts:</strong> {{ status.connection_attempts || 0 }}</p>
         <Button :label="testing ? 'Testing...' : 'Test Internet Connection'" icon="pi pi-globe" :loading="testing" :disabled="!status.sta_connected" @click="testInternet" />
         <Message v-if="testResult" class="mt-3" severity="info" :closable="false">{{ testResult }}</Message>
+      </template>
+    </Card>
+
+    <Card>
+      <template #title>Signal Trend (RSSI dBm)</template>
+      <template #content>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+            <path :d="rssiPath" class="line line-rssi" />
+          </svg>
+        </div>
+        <small class="muted">Last {{ maxHistory }} samples</small>
+      </template>
+    </Card>
+
+    <Card>
+      <template #title>Temperature Trend (°C)</template>
+      <template #content>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+            <path :d="tempPath" class="line line-temp" />
+          </svg>
+        </div>
+        <small class="muted">Internal ESP32 temperature readings</small>
+      </template>
+    </Card>
+
+    <Card>
+      <template #title>Heap Trend (KB)</template>
+      <template #content>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="sparkline">
+            <path :d="heapPath" class="line line-heap" />
+          </svg>
+        </div>
+        <small class="muted">Free heap memory history</small>
       </template>
     </Card>
   </div>
@@ -59,6 +102,10 @@ const status = ref({})
 const testResult = ref('')
 const testing = ref(false)
 const isLive = ref(false)
+const maxHistory = 40
+const rssiHistory = ref([])
+const tempHistory = ref([])
+const heapHistory = ref([])
 let pollInterval
 let eventSource
 let liveTimeout
@@ -73,6 +120,55 @@ const uptimeText = computed(() => {
 
 const liveLabel = computed(() => (isLive.value ? 'Live updates' : 'Polling'))
 
+const signalQuality = computed(() => {
+  if (!status.value.sta_connected) return 0
+  const rssi = Number(status.value.rssi || -100)
+  if (rssi <= -100) return 0
+  if (rssi >= -50) return 100
+  return Math.round(2 * (rssi + 100))
+})
+
+const ledSeverity = computed(() => {
+  switch (status.value.led_state) {
+    case 'connected': return 'success'
+    case 'connecting': return 'warning'
+    case 'waiting-config': return 'info'
+    case 'restarting': return 'secondary'
+    case 'error': return 'danger'
+    default: return 'contrast'
+  }
+})
+
+const makePath = (values) => {
+  if (!values.length) return ''
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const spread = max - min || 1
+  return values
+    .map((value, index) => {
+      const x = (index / Math.max(values.length - 1, 1)) * 100
+      const y = 30 - ((value - min) / spread) * 28 - 1
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
+    })
+    .join(' ')
+}
+
+const rssiPath = computed(() => makePath(rssiHistory.value))
+const tempPath = computed(() => makePath(tempHistory.value))
+const heapPath = computed(() => makePath(heapHistory.value))
+
+const pushSample = (target, value) => {
+  if (!Number.isFinite(value)) return
+  target.value.push(value)
+  if (target.value.length > maxHistory) target.value.shift()
+}
+
+const pushMetrics = () => {
+  if (status.value.sta_connected) pushSample(rssiHistory, Number(status.value.rssi))
+  pushSample(tempHistory, Number(status.value.chip_temp_c))
+  pushSample(heapHistory, Number(status.value.free_heap_bytes) / 1024)
+}
+
 const bumpLive = () => {
   isLive.value = true
   clearTimeout(liveTimeout)
@@ -81,10 +177,15 @@ const bumpLive = () => {
   }, 10000)
 }
 
+const applyStatus = (nextStatus) => {
+  status.value = nextStatus
+  pushMetrics()
+}
+
 const fetchStatus = async () => {
   try {
     const res = await fetch('/api/status')
-    if (res.ok) status.value = await res.json()
+    if (res.ok) applyStatus(await res.json())
   } catch (e) {
     console.error('Failed to fetch status', e)
   }
@@ -96,7 +197,7 @@ const connectRealtime = () => {
 
   eventSource.addEventListener('status', (event) => {
     try {
-      status.value = JSON.parse(event.data)
+      applyStatus(JSON.parse(event.data))
       bumpLive()
     } catch (e) {
       console.error('Failed to parse status event', e)
@@ -106,6 +207,19 @@ const connectRealtime = () => {
   eventSource.onerror = () => {
     isLive.value = false
   }
+}
+
+const formatBytes = (bytes) => {
+  const n = Number(bytes)
+  if (!Number.isFinite(n) || n <= 0) return '-'
+  if (n < 1024) return `${n} B`
+  return `${(n / 1024).toFixed(1)} KB`
+}
+
+const formatTemperature = (value) => {
+  const t = Number(value)
+  if (!Number.isFinite(t)) return '-'
+  return `${t.toFixed(1)} °C`
 }
 
 const testInternet = async () => {
@@ -139,6 +253,7 @@ onUnmounted(() => {
 .dashboard-grid {
   display: grid;
   gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
 .card-title {
@@ -146,5 +261,42 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
+}
+
+.chart-wrap {
+  width: 100%;
+  height: 140px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #f8fafc, #ffffff);
+  padding: 0.5rem;
+}
+
+.sparkline {
+  width: 100%;
+  height: 100%;
+}
+
+.line {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.line-rssi {
+  stroke: #2563eb;
+}
+
+.line-temp {
+  stroke: #ef4444;
+}
+
+.line-heap {
+  stroke: #16a34a;
+}
+
+.muted {
+  color: #6b7280;
 }
 </style>
