@@ -4,18 +4,20 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const product = await prisma.product.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         isDeleted: false,
         deletedAt: null,
+        updatedAt: new Date(),
       }
     });
 
