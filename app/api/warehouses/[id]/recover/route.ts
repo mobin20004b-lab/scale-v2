@@ -4,19 +4,21 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const warehouse = await prisma.warehouse.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: 'ACTIVE',
         isDeleted: false,
         deletedAt: null,
+        updatedAt: new Date(), // Added updatedAt as per common practice for updates
       }
     });
 
@@ -33,6 +35,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     return NextResponse.json(warehouse);
   } catch (error) {
+    console.error('Failed to recover warehouse:', error); // Added console.error for better debugging
     return NextResponse.json({ error: 'Failed to recover warehouse' }, { status: 500 });
   }
 }

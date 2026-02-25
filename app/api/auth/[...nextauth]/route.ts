@@ -1,11 +1,11 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
-export const authOptions = {
-  adapter: PrismaAdapter(prisma),
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma) as any, // Cast as any if there's an adapter type mismatch
   providers: [
     CredentialsProvider({
       name: 'ورود با نام کاربری',
@@ -39,8 +39,6 @@ export const authOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
-          locale: 'fa-IR',
-          rtl: true,
         };
       },
     }),
@@ -49,7 +47,7 @@ export const authOptions = {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user?: any }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -58,7 +56,7 @@ export const authOptions = {
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;

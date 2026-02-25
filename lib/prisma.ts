@@ -1,12 +1,15 @@
-import { PrismaClient } from '@prisma/client';
-
+import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
 declare global {
   var prisma: PrismaClient | undefined;
 }
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 };
 

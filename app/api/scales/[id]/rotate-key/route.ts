@@ -4,34 +4,31 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const data = await request.json();
-  
   try {
-    const scale = await prisma.scale.update({
-      where: { id: params.id },
-      data: {
-        apiKey: data.apiKey,
-      }
+    const result = await prisma.scale.update({
+      where: { id },
+      data: { apiKey: crypto.randomUUID() },
     });
 
     // Log activity
     await prisma.activityLog.create({
       data: {
         actorId: session.user.id,
-        action: 'ROTATE_API_KEY',
+        action: 'ROTATE_KEY',
         entityType: 'SCALE',
-        entityId: scale.id,
-        details: JSON.stringify({ name: scale.name })
+        entityId: id,
+        details: JSON.stringify({ scaleId: id }),
       }
     });
 
-    return NextResponse.json(scale);
+    return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to rotate API key' }, { status: 500 });
   }

@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
+import { prisma } from '@/lib/prisma';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -16,10 +13,10 @@ export async function POST(
     }
 
     const apiKey = authHeader.split(' ')[1];
-    
+
     // In a real app, you'd verify the API key matches the scale ID in the database
     // For this demo, we'll just accept it if it's provided
-    
+
     const body = await request.json();
     const { weight, unit, uptime } = body;
 

@@ -4,24 +4,21 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const data = await request.json();
-  
+
   try {
     const scale = await prisma.scale.update({
-      where: { id: params.id },
+      where: { id },
       data: {
-        name: data.name,
-        model: data.model,
-        warehouseId: data.warehouseId,
-        unit: data.unit,
-        precision: data.precision,
-        heartbeat: data.heartbeat,
+        ...data,
+        updatedAt: new Date(),
       }
     });
 
@@ -42,26 +39,27 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     // Check for dependent transactions or commands
-    const hasCommands = await prisma.scaleCommand.count({ where: { scaleId: params.id } });
-    const hasLedgers = await prisma.inventoryLedger.count({ where: { scaleId: params.id } });
+    const hasCommands = await prisma.scaleCommand.count({ where: { scaleId: id } });
+    const hasLedgers = await prisma.inventoryLedger.count({ where: { scaleId: id } });
 
     if (hasCommands > 0 || hasLedgers > 0) {
       // Archive instead of delete
       const scale = await prisma.scale.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           status: 'ARCHIVED'
         }
       });
-      
+
       await prisma.activityLog.create({
         data: {
           actorId: session.user.id,
@@ -77,15 +75,15 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     // Hard delete if no dependencies
     await prisma.scale.delete({
-      where: { id: params.id }
+      where: { id: id }
     });
-    
+
     await prisma.activityLog.create({
       data: {
         actorId: session.user.id,
         action: 'DELETE',
         entityType: 'SCALE',
-        entityId: params.id,
+        entityId: id,
       }
     });
 
