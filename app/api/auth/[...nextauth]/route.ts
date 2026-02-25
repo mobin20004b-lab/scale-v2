@@ -1,72 +1,78 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
-import bcrypt from "bcryptjs"
-
-const prisma = new PrismaClient()
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'ورود با نام کاربری',
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "admin@example.com" },
-        password: { label: "Password", type: "password" }
+        identifier: { label: 'نام کاربری یا ایمیل', type: 'text' },
+        password: { label: 'رمز عبور', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
+        if (!credentials?.identifier || !credentials?.password) {
+          return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        })
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: credentials.identifier },
+              { username: credentials.identifier },
+            ],
+          },
+        });
 
-        if (!user) {
-          return null
+        if (!user || user.status !== 'ACTIVE' || !user.isActive) {
+          return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
-
-        if (!isPasswordValid) {
-          return null
-        }
+        const valid = await bcrypt.compare(credentials.password, user.password);
+        if (!valid) return null;
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-        }
-      }
-    })
+          locale: 'fa-IR',
+          rtl: true,
+        };
+      },
+    }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
-        token.id = user.id
+        token.id = user.id;
+        token.role = user.role;
+        token.locale = 'fa-IR';
+        token.rtl = true;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      if (session?.user) {
-        session.user.role = token.role
-        session.user.id = token.id
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.locale = token.locale as string;
+        session.user.rtl = Boolean(token.rtl);
       }
-      return session
-    }
+      return session;
+    },
   },
   pages: {
     signIn: '/login',
-  }
-}
+  },
+};
 
-const handler = NextAuth(authOptions)
+const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };

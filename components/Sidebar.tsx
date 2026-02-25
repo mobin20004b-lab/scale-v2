@@ -23,6 +23,10 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
   const navigation = [
     { name: 'داشبورد', href: '/', icon: LayoutDashboard },
     { name: 'محصولات', href: '/products', icon: Package },

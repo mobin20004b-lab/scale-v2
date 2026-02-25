@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-const prisma = new PrismaClient();
 
 export async function GET(request: Request, { params }: { params: { barcode: string } }) {
   const session = await getServerSession(authOptions);
@@ -11,7 +10,7 @@ export async function GET(request: Request, { params }: { params: { barcode: str
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const product = await prisma.product.findUnique({
+  const product = await prisma.product.findFirst({
     where: { barcode: params.barcode, isDeleted: false }
   });
 
