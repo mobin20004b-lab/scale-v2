@@ -1,114 +1,82 @@
 'use client';
 
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
-} from 'recharts';
+import { useEffect, useMemo, useState } from 'react';
 import { Package, ArrowDownToLine, ArrowUpFromLine, Activity } from 'lucide-react';
-import { useStore } from '@/lib/store';
 
-const data = [
-  { name: 'شنبه', in: 4000, out: 2400 },
-  { name: 'یکشنبه', in: 3000, out: 1398 },
-  { name: 'دوشنبه', in: 2000, out: 9800 },
-  { name: 'سه‌شنبه', in: 2780, out: 3908 },
-  { name: 'چهارشنبه', in: 1890, out: 4800 },
-  { name: 'پنج‌شنبه', in: 2390, out: 3800 },
-  { name: 'جمعه', in: 3490, out: 4300 },
-];
+type Ledger = {
+  id: string;
+  type: 'STOCK_IN' | 'STOCK_OUT' | 'STOCK_IN_UNDO' | 'STOCK_OUT_UNDO';
+  weight: number | null;
+  quantity: number;
+  createdAt: string;
+};
+
+type Scale = { id: string; status: 'ONLINE' | 'OFFLINE' | 'ARCHIVED' };
 
 export default function Dashboard() {
-  const { inventory, scales } = useStore();
-  
-  const totalWeight = inventory
-    .filter(i => i.status === 'in_stock')
-    .reduce((sum, item) => sum + item.weight, 0);
-    
-  const incomingToday = inventory
-    .filter(i => new Date(i.date).toDateString() === new Date().toDateString())
-    .reduce((sum, item) => sum + item.weight, 0);
-    
-  const outgoingToday = inventory
-    .filter(i => i.status === 'removed' && new Date(i.date).toDateString() === new Date().toDateString())
-    .reduce((sum, item) => sum + item.weight, 0);
-    
-  const onlineScales = scales.filter(s => s.status === 'online').length;
+  const [ledgers, setLedgers] = useState<Ledger[]>([]);
+  const [scales, setScales] = useState<Scale[]>([]);
+
+  useEffect(() => {
+    Promise.all([fetch('/api/inventory'), fetch('/api/scales')]).then(async ([inventoryRes, scaleRes]) => {
+      if (inventoryRes.ok) setLedgers(await inventoryRes.json());
+      if (scaleRes.ok) setScales(await scaleRes.json());
+    });
+  }, []);
+
+  const today = new Date().toDateString();
+
+  const metrics = useMemo(() => {
+    const total = ledgers.reduce((sum, entry) => {
+      const w = entry.weight ?? entry.quantity;
+      if (entry.type === 'STOCK_IN' || entry.type === 'STOCK_OUT_UNDO') return sum + w;
+      if (entry.type === 'STOCK_OUT' || entry.type === 'STOCK_IN_UNDO') return sum - w;
+      return sum;
+    }, 0);
+
+    const incomingToday = ledgers
+      .filter((entry) => entry.type === 'STOCK_IN' && new Date(entry.createdAt).toDateString() === today)
+      .reduce((sum, entry) => sum + (entry.weight ?? entry.quantity), 0);
+
+    const outgoingToday = ledgers
+      .filter((entry) => entry.type === 'STOCK_OUT' && new Date(entry.createdAt).toDateString() === today)
+      .reduce((sum, entry) => sum + (entry.weight ?? entry.quantity), 0);
+
+    return {
+      total,
+      incomingToday,
+      outgoingToday,
+      onlineScales: scales.filter((s) => s.status === 'ONLINE').length,
+    };
+  }, [ledgers, scales, today]);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">داشبورد</h1>
-        <p className="text-muted-foreground mt-1">نمای کلی از عملیات انبار شما.</p>
+        <p className="text-muted-foreground mt-1">داده‌ها به‌صورت زنده از دیتابیس خوانده می‌شوند.</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">موجودی کل</h3>
-            <Package className="w-5 h-5 text-primary" />
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-foreground">{totalWeight.toFixed(2)} کیلوگرم</div>
-            <p className="text-xs text-muted-foreground mt-1">در حال حاضر در انبار</p>
-          </div>
-        </div>
-        
-        <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">ورودی امروز</h3>
-            <ArrowDownToLine className="w-5 h-5 text-primary" />
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-foreground">{incomingToday.toFixed(2)} کیلوگرم</div>
-            <p className="text-xs text-muted-foreground mt-1">ثبت شده امروز</p>
-          </div>
-        </div>
-
-        <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">خروجی امروز</h3>
-            <ArrowUpFromLine className="w-5 h-5 text-primary" />
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-foreground">{outgoingToday.toFixed(2)} کیلوگرم</div>
-            <p className="text-xs text-muted-foreground mt-1">خارج شده امروز</p>
-          </div>
-        </div>
-
-        <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">ترازوهای فعال</h3>
-            <Activity className="w-5 h-5 text-primary" />
-          </div>
-          <div className="mt-4">
-            <div className="text-3xl font-bold text-foreground">{onlineScales} / {scales.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">دستگاه‌های متصل</p>
-          </div>
-        </div>
+        <Card title="موجودی کل" value={`${metrics.total.toFixed(2)} کیلوگرم`} subtitle="در حال حاضر در انبار" icon={<Package className="w-5 h-5 text-primary" />} />
+        <Card title="ورودی امروز" value={`${metrics.incomingToday.toFixed(2)} کیلوگرم`} subtitle="ثبت شده امروز" icon={<ArrowDownToLine className="w-5 h-5 text-primary" />} />
+        <Card title="خروجی امروز" value={`${metrics.outgoingToday.toFixed(2)} کیلوگرم`} subtitle="خارج شده امروز" icon={<ArrowUpFromLine className="w-5 h-5 text-primary" />} />
+        <Card title="ترازوهای فعال" value={`${metrics.onlineScales} / ${scales.length}`} subtitle="دستگاه‌های متصل" icon={<Activity className="w-5 h-5 text-primary" />} />
       </div>
+    </div>
+  );
+}
 
-      <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
-        <h3 className="text-lg font-medium text-foreground mb-6">فعالیت هفتگی (کیلوگرم)</h3>
-        <div className="h-[300px] w-full" dir="ltr">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted-foreground)' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--color-muted-foreground)' }} />
-              <Tooltip 
-                cursor={{ fill: 'var(--color-muted)', opacity: 0.4 }}
-                contentStyle={{ borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-card)' }}
-              />
-              <Bar dataKey="in" fill="var(--color-primary)" radius={[4, 4, 0, 0]} name="ورودی" />
-              <Bar dataKey="out" fill="var(--color-accent)" radius={[4, 4, 0, 0]} name="خروجی" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+function Card({ title, value, subtitle, icon }: { title: string; value: string; subtitle: string; icon: React.ReactNode }) {
+  return (
+    <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+        {icon}
+      </div>
+      <div className="mt-4">
+        <div className="text-3xl font-bold text-foreground">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
       </div>
     </div>
   );
