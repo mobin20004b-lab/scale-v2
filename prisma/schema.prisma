@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("USER") // ADMIN, MANAGER, OPERATOR
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  activities ActivityLog[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  barcode     String   @unique
+  category    String?
+  unit        String   @default("kg") // kg, pcs, etc.
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ledgerEntries InventoryLedger[]
+}
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  name        String
+  location    String?
+  managerName String?
+  status      String   @default("ACTIVE") // ACTIVE, ARCHIVED
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  scales      Scale[]
+  ledgerEntries InventoryLedger[]
+}
+
+model Scale {
+  id          String   @id @default(cuid())
+  name        String
+  model       String   @default("ESP32-WROOM-32")
+  apiKey      String   @unique
+  status      String   @default("OFFLINE") // ONLINE, OFFLINE
+  lastSeen    DateTime?
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  
+  // Config
+  unit        String   @default("kg")
+  precision   Int      @default(2)
+  heartbeat   Int      @default(30) // seconds
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  commands    ScaleCommand[]
+  printJobs   PrintJob[]
+  ledgerEntries InventoryLedger[]
+}
+
+model InventoryLedger {
+  id            String   @id @default(cuid())
+  type          String   // STOCK_IN, STOCK_IN_UNDO, STOCK_OUT, STOCK_OUT_UNDO
+  quantity      Float
+  weight        Float?
+  
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  
+  warehouseId   String
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  
+  scaleId       String?
+  scale         Scale?   @relation(fields: [scaleId], references: [id])
+  
+  sourceTxId    String?  // Reference to original tx if this is an UNDO
+  
+  createdAt     DateTime @default(now())
+  createdBy     String?  // User ID
+}
+
+model UnknownBarcode {
+  id          String   @id @default(cuid())
+  barcode     String
+  status      String   @default("OPEN") // OPEN, TEMP_RECEIVING, MAPPED
+  capturedAt  DateTime @default(now())
+  resolvedAt  DateTime?
+  resolvedTo  String?  // Product ID if mapped
+}
+
+model ScaleCommand {
+  id          String   @id @default(cuid())
+  scaleId     String
+  scale       Scale    @relation(fields: [scaleId], references: [id])
+  command     String   // JSON payload
+  status      String   @default("PENDING") // PENDING, SENT, ACKED, FAILED, EXPIRED
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+  ackedAt     DateTime?
+}
+
+model PrintJob {
+  id          String   @id @default(cuid())
+  scaleId     String
+  scale       Scale    @relation(fields: [scaleId], references: [id])
+  payload     String   // TSPL or ESC-POS commands
+  status      String   @default("QUEUED") // QUEUED, SENT, FAILED
+  attempts    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation(fields: [actorId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  details     String?  // JSON string
+  createdAt   DateTime @default(now())
+}

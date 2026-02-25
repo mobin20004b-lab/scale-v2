@@ -1,0 +1,7 @@
+{
+  "name": "GreenStock Inventory",
+  "description": "Simple and fast inventory management system with scale integration and barcode scanning.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
