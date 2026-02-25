@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 const SETTINGS_FILE_PATH = path.join(process.cwd(), 'data', 'system-settings.json');
 
@@ -48,39 +49,47 @@ export async function POST(request: Request) {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.create({
-      data: {
-        name,
-        username,
-        email,
-        password: passwordHash,
-        role: 'ADMIN',
-        status: 'ACTIVE',
-        isActive: true,
-      },
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.create({
+        data: {
+          name,
+          username,
+          email,
+          password: passwordHash,
+          role: 'CEO',
+          status: 'ACTIVE',
+          isActive: true,
+        },
+      });
 
-    await tx.warehouse.create({
-      data: {
-        name: warehouseName,
-        managerName: name,
-        status: 'ACTIVE',
-      },
-    });
+      await tx.warehouse.create({
+        data: {
+          name: warehouseName,
+          managerName: name,
+          status: 'ACTIVE',
+        },
+      });
 
-    await tx.systemSetting.upsert({
-      where: { key: 'company' },
-      update: { value: { name: companyName } },
-      create: { key: 'company', value: { name: companyName } },
-    });
+      await tx.systemSetting.upsert({
+        where: { key: 'company' },
+        update: { value: { name: companyName } },
+        create: { key: 'company', value: { name: companyName } },
+      });
 
-    await tx.systemSetting.upsert({
-      where: { key: 'bootstrap' },
-      update: { value: { initializedAt: new Date().toISOString() } },
-      create: { key: 'bootstrap', value: { initializedAt: new Date().toISOString() } },
+      await tx.systemSetting.upsert({
+        where: { key: 'bootstrap' },
+        update: { value: { initializedAt: new Date().toISOString() } },
+        create: { key: 'bootstrap', value: { initializedAt: new Date().toISOString() } },
+      });
     });
-  });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'Duplicate user information.' }, { status: 409 });
+    }
+
+    return NextResponse.json({ error: 'Bootstrap failed.' }, { status: 500 });
+  }
 
   await ensureInitialSettingsFile(companyName);
 
