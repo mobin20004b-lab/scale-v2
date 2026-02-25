@@ -1,20 +1,74 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# گرین‌استاک (سامانه مدیریت انبار مبتنی بر وزن)
 
-# Run and deploy your AI Studio app
+گرین‌استاک یک سامانه‌ی کامل وب برای مدیریت ورود و خروج کالا در انبار است که با رویکرد **فارسی + RTL** و طراحی ساده (Material 3 friendly) پیاده‌سازی شده است.
 
-This contains everything you need to run your app locally.
+## امکانات کلیدی
 
-View your app in AI Studio: https://ai.studio/apps/b90aaf96-44de-4657-a96c-51fdbf9be888
+- مدیریت محصولات، انبارها، ترازوها، کاربران و گزارش‌ها
+- ثبت ورود کالا (Stock-in) با وزن دستی یا وزن دریافتی از ترازو
+- ثبت خروج کالا (Stock-out) با اسکن بارکد/QR
+- تولید و مدیریت توکن API اختصاصی برای هر ترازو
+- نمونه cURL برای ارسال وزن و دریافت تنظیمات دستگاه
+- مدیریت ظرفیت انبار، آرشیو انبار و قواعد ایمنی وابستگی ترازو
+- رابط کاربری فارسی و راست‌چین برای تمام صفحات اصلی
+- پشتیبانی از **PostgreSQL + Prisma**
 
-## Run Locally
+## اجرای محلی
 
-**Prerequisites:**  Node.js
+### پیش‌نیازها
 
+- Node.js 20+
+- PostgreSQL 15+
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### نصب و راه‌اندازی
+
+1. نصب پکیج‌ها:
+
+```bash
+npm install
+```
+
+2. ساخت فایل env:
+
+```bash
+cp .env.example .env.local
+```
+
+3. مقداردهی `DATABASE_URL` و سایر متغیرها در `.env.local`
+
+4. اجرای migration:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+5. اجرای پروژه:
+
+```bash
+npm run dev
+```
+
+## اجرای کانتینری
+
+```bash
+docker compose up --build
+```
+
+- سرویس Postgres روی پورت `5432`
+- سرویس اپلیکیشن روی پورت `3000`
+
+## Prisma
+
+دیتابیس پروژه با Prisma مدیریت می‌شود و schema در مسیر `prisma/schema.prisma` قرار دارد.
+
+دستورات مفید:
+
+```bash
+npx prisma generate
+npx prisma migrate dev
+npx prisma studio
+```
+
+## فریمور ESP32
+
+پوشه‌ی `esp32/` برای عامل دستگاه ترازو است و برای ارسال وزن، تلماتری، و دریافت فرمان‌ها استفاده می‌شود.
