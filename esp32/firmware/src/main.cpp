@@ -8,6 +8,7 @@
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <esp_wifi.h>
+#include <Adafruit_NeoPixel.h>
 #include <algorithm>
 #include <vector>
 
@@ -37,6 +38,95 @@ unsigned long lastReconnectAttempt = 0;
 unsigned long lastStatusBroadcast = 0;
 uint32_t connectionAttempts = 0;
 String lastDisconnectReason = "none";
+
+#ifndef RGB_LED_PIN
+#define RGB_LED_PIN 48
+#endif
+
+#ifndef RGB_LED_COUNT
+#define RGB_LED_COUNT 1
+#endif
+
+Adafruit_NeoPixel rgbLed(RGB_LED_COUNT, RGB_LED_PIN, NEO_GRB + NEO_KHZ800);
+
+enum class LedState {
+    WAITING_CONFIG,
+    CONNECTING,
+    CONNECTED,
+    ERROR,
+    RESTARTING
+};
+
+LedState ledState = LedState::WAITING_CONFIG;
+unsigned long ledTickMs = 0;
+uint16_t ledPulse = 0;
+
+const char* ledStateToString(LedState state) {
+    switch (state) {
+        case LedState::WAITING_CONFIG: return "waiting-config";
+        case LedState::CONNECTING: return "connecting";
+        case LedState::CONNECTED: return "connected";
+        case LedState::ERROR: return "error";
+        case LedState::RESTARTING: return "restarting";
+        default: return "unknown";
+    }
+}
+
+void setLedState(LedState state) {
+    ledState = state;
+}
+
+void updateRgbLed() {
+    if (millis() - ledTickMs < 20) {
+        return;
+    }
+    ledTickMs = millis();
+    ledPulse += 512;
+
+    uint8_t level = 0;
+    uint32_t color = 0;
+
+    switch (ledState) {
+        case LedState::WAITING_CONFIG:
+            level = (sin(ledPulse / 65535.0f * 6.28318f) * 0.5f + 0.5f) * 70;
+            color = rgbLed.Color(0, 0, level);
+            break;
+        case LedState::CONNECTING:
+            level = ((ledPulse / 4096) % 2 == 0) ? 90 : 10;
+            color = rgbLed.Color(level, level / 2, 0);
+            break;
+        case LedState::CONNECTED:
+            color = rgbLed.Color(0, 110, 0);
+            break;
+        case LedState::ERROR:
+            level = ((ledPulse / 4096) % 2 == 0) ? 120 : 0;
+            color = rgbLed.Color(level, 0, 0);
+            break;
+        case LedState::RESTARTING:
+            level = ((ledPulse / 2048) % 2 == 0) ? 120 : 0;
+            color = rgbLed.Color(level, 0, level);
+            break;
+    }
+
+    rgbLed.setPixelColor(0, color);
+    rgbLed.show();
+}
+
+void refreshLedStateFromNetwork() {
+    if (restartRequested) {
+        setLedState(LedState::RESTARTING);
+        return;
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+        setLedState(LedState::CONNECTED);
+    } else if (wifiConnectStartTime > 0 || shouldConnectWifi) {
+        setLedState(LedState::CONNECTING);
+    } else if (sta_ssid == "") {
+        setLedState(LedState::WAITING_CONFIG);
+    } else {
+        setLedState(LedState::ERROR);
+    }
+}
 
 void applyWifiPowerSave() {
     esp_wifi_set_ps((wifi_ps_type_t)wifi_power_save);
@@ -103,6 +193,10 @@ void broadcastStatus(const char* reason = "update") {
     doc["last_disconnect_reason"] = lastDisconnectReason;
     doc["wifi_power_save"] = wifi_power_save;
     doc["wifi_hostname"] = wifi_hostname;
+    doc["chip_temp_c"] = temperatureRead();
+    doc["free_heap_bytes"] = ESP.getFreeHeap();
+    doc["wifi_channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
+    doc["led_state"] = ledStateToString(ledState);
 
     String response;
     serializeJson(doc, response);
@@ -145,6 +239,10 @@ void setupRoutes() {
         doc["last_disconnect_reason"] = lastDisconnectReason;
         doc["wifi_power_save"] = wifi_power_save;
         doc["wifi_hostname"] = wifi_hostname;
+        doc["chip_temp_c"] = temperatureRead();
+        doc["free_heap_bytes"] = ESP.getFreeHeap();
+        doc["wifi_channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
+        doc["led_state"] = ledStateToString(ledState);
 
         String response;
         serializeJson(doc, response);
@@ -349,11 +447,13 @@ void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
             Serial.println(WiFi.localIP());
             lastDisconnectReason = "none";
             wifiConnectStartTime = 0;
+            setLedState(LedState::CONNECTED);
             broadcastStatus("wifi-connected");
             break;
         case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
             lastDisconnectReason = String(info.wifi_sta_disconnected.reason);
             Serial.printf("Wi-Fi disconnected. Reason code: %s\n", lastDisconnectReason.c_str());
+            setLedState(sta_ssid == "" ? LedState::WAITING_CONFIG : LedState::ERROR);
             broadcastStatus("wifi-disconnected");
             break;
         default:
@@ -372,6 +472,11 @@ void setup() {
 
     loadConfig();
 
+    rgbLed.begin();
+    rgbLed.setBrightness(100);
+    rgbLed.clear();
+    rgbLed.show();
+
     WiFi.mode(WIFI_AP_STA);
     WiFi.setHostname(wifi_hostname.c_str());
     applyWifiPowerSave();
@@ -386,7 +491,10 @@ void setup() {
         connectionAttempts++;
         WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
         wifiConnectStartTime = millis();
+        setLedState(LedState::CONNECTING);
         Serial.println("Connecting to saved Wi-Fi...");
+    } else {
+        setLedState(LedState::WAITING_CONFIG);
     }
 
     server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER);
@@ -411,6 +519,7 @@ void loop() {
         delay(100);
         WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
         wifiConnectStartTime = millis();
+        setLedState(LedState::CONNECTING);
         Serial.print("Connecting to ");
         Serial.println(sta_ssid);
         broadcastStatus("wifi-connect-requested");
@@ -424,6 +533,7 @@ void loop() {
             WiFi.disconnect();
             lastDisconnectReason = "connect-timeout";
             wifiConnectStartTime = 0;
+            setLedState(LedState::ERROR);
             broadcastStatus("wifi-timeout");
         }
     }
@@ -442,9 +552,14 @@ void loop() {
     }
 
     if (restartRequested) {
+        setLedState(LedState::RESTARTING);
+        updateRgbLed();
         delay(500);
         ESP.restart();
     }
+
+    refreshLedStateFromNetwork();
+    updateRgbLed();
 
     delay(2);
 }
