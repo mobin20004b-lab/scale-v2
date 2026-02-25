@@ -1,16 +1,11 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
 
 declare global {
   var prisma: PrismaClient | undefined;
 }
 
 const prismaClientSingleton = () => {
-const adapter = new PrismaPostgresAdapter({
-  connectionString: process.env.DATABASE_URL!,
-});
-
-  return new PrismaClient({ adapter });
+  return new PrismaClient();
 };
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
