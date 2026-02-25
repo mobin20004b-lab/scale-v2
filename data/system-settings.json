@@ -1,0 +1,12 @@
+{
+  "security": {
+    "defaultRateLimit": 120,
+    "tokenExpirationDays": 90
+  },
+  "api": {
+    "externalEnabled": true
+  },
+  "users": {
+    "activeUsers": {}
+  }
+}
