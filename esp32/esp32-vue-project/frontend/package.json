@@ -6,7 +6,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.2.1",
+    "primeicons": "^7.0.0",
+    "primevue": "^3.53.1",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"
   },
