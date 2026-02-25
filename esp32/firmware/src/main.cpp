@@ -193,7 +193,6 @@ void broadcastStatus(const char* reason = "update") {
     doc["last_disconnect_reason"] = lastDisconnectReason;
     doc["wifi_power_save"] = wifi_power_save;
     doc["wifi_hostname"] = wifi_hostname;
-    doc["chip_temp_c"] = temperatureRead();
     doc["free_heap_bytes"] = ESP.getFreeHeap();
     doc["wifi_channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
     doc["led_state"] = ledStateToString(ledState);
@@ -239,7 +238,6 @@ void setupRoutes() {
         doc["last_disconnect_reason"] = lastDisconnectReason;
         doc["wifi_power_save"] = wifi_power_save;
         doc["wifi_hostname"] = wifi_hostname;
-        doc["chip_temp_c"] = temperatureRead();
         doc["free_heap_bytes"] = ESP.getFreeHeap();
         doc["wifi_channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
         doc["led_state"] = ledStateToString(ledState);

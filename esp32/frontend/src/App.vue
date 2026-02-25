@@ -28,14 +28,12 @@ const route = useRoute()
 const router = useRouter()
 
 const menuItems = [
-  { label: 'Dashboard', icon: 'pi pi-home', command: () => router.push('/') },
   { label: 'Wi-Fi', icon: 'pi pi-wifi', command: () => router.push('/wifi') },
   { label: 'Settings', icon: 'pi pi-sliders-h', command: () => router.push('/config') }
 ]
 
 const activeIndex = computed(() => {
-  if (route.path === '/wifi') return 1
-  if (route.path === '/config') return 2
+  if (route.path === '/config') return 1
   return 0
 })
 </script>
