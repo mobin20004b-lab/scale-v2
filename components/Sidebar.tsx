@@ -23,7 +23,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/setup') {
     return <>{children}</>;
   }
 

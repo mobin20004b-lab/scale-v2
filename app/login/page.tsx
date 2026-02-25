@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +10,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingBootstrap, setCheckingBootstrap] = useState(true);
+
+  useEffect(() => {
+    const checkBootstrap = async () => {
+      try {
+        const res = await fetch('/api/bootstrap');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.requiresBootstrap) {
+            router.replace('/setup');
+            return;
+          }
+        }
+      } finally {
+        setCheckingBootstrap(false);
+      }
+    };
+
+    checkBootstrap();
+  }, [router]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -31,6 +51,14 @@ export default function LoginPage() {
 
     router.push('/');
   };
+
+  if (checkingBootstrap) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <p className="text-muted-foreground">در حال آماده‌سازی سیستم...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
