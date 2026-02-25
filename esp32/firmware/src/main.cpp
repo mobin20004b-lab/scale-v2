@@ -7,9 +7,13 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <esp_wifi.h>
+#include <algorithm>
+#include <vector>
 
 DNSServer dnsServer;
 AsyncWebServer server(80);
+AsyncEventSource events("/api/events");
 Preferences preferences;
 
 const byte DNS_PORT = 53;
@@ -20,13 +24,23 @@ String sta_password = "";
 String custom_token = "";
 String custom_domain = "";
 String device_name = "ESP32 Controller";
+String wifi_hostname = "esp32-controller";
 uint32_t wifi_timeout_ms = 15000;
+uint32_t reconnect_interval_ms = 15000;
 bool auto_reconnect = true;
+uint8_t wifi_power_save = WIFI_PS_MIN_MODEM;
 
 bool shouldConnectWifi = false;
 bool restartRequested = false;
 unsigned long wifiConnectStartTime = 0;
 unsigned long lastReconnectAttempt = 0;
+unsigned long lastStatusBroadcast = 0;
+uint32_t connectionAttempts = 0;
+String lastDisconnectReason = "none";
+
+void applyWifiPowerSave() {
+    esp_wifi_set_ps((wifi_ps_type_t)wifi_power_save);
+}
 
 void loadConfig() {
     preferences.begin("config", false);
@@ -35,12 +49,24 @@ void loadConfig() {
     custom_token = preferences.getString("token", "");
     custom_domain = preferences.getString("domain", "");
     device_name = preferences.getString("dev_name", "ESP32 Controller");
+    wifi_hostname = preferences.getString("hostname", "esp32-controller");
     wifi_timeout_ms = preferences.getUInt("wifi_to", 15000);
+    reconnect_interval_ms = preferences.getUInt("rc_int", 15000);
     auto_reconnect = preferences.getBool("auto_rc", true);
+    wifi_power_save = preferences.getUChar("wifi_ps", WIFI_PS_MIN_MODEM);
     preferences.end();
 
     if (wifi_timeout_ms < 5000 || wifi_timeout_ms > 60000) {
         wifi_timeout_ms = 15000;
+    }
+    if (reconnect_interval_ms < 3000 || reconnect_interval_ms > 120000) {
+        reconnect_interval_ms = 15000;
+    }
+    if (wifi_hostname.length() < 3 || wifi_hostname.length() > 32) {
+        wifi_hostname = "esp32-controller";
+    }
+    if (wifi_power_save > WIFI_PS_MAX_MODEM) {
+        wifi_power_save = WIFI_PS_MIN_MODEM;
     }
 }
 
@@ -51,9 +77,36 @@ void saveConfig() {
     preferences.putString("token", custom_token);
     preferences.putString("domain", custom_domain);
     preferences.putString("dev_name", device_name);
+    preferences.putString("hostname", wifi_hostname);
     preferences.putUInt("wifi_to", wifi_timeout_ms);
+    preferences.putUInt("rc_int", reconnect_interval_ms);
     preferences.putBool("auto_rc", auto_reconnect);
+    preferences.putUChar("wifi_ps", wifi_power_save);
     preferences.end();
+}
+
+void broadcastStatus(const char* reason = "update") {
+    JsonDocument doc;
+    doc["reason"] = reason;
+    doc["device_name"] = device_name;
+    doc["ap_ssid"] = AP_SSID;
+    doc["ap_ip"] = WiFi.softAPIP().toString();
+    doc["sta_ssid"] = sta_ssid;
+    doc["sta_connected"] = WiFi.status() == WL_CONNECTED;
+    doc["sta_ip"] = WiFi.localIP().toString();
+    doc["uptime_seconds"] = millis() / 1000;
+    doc["wifi_timeout_ms"] = wifi_timeout_ms;
+    doc["reconnect_interval_ms"] = reconnect_interval_ms;
+    doc["auto_reconnect"] = auto_reconnect;
+    doc["rssi"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
+    doc["connection_attempts"] = connectionAttempts;
+    doc["last_disconnect_reason"] = lastDisconnectReason;
+    doc["wifi_power_save"] = wifi_power_save;
+    doc["wifi_hostname"] = wifi_hostname;
+
+    String response;
+    serializeJson(doc, response);
+    events.send(response.c_str(), "status", millis());
 }
 
 class CaptiveRequestHandler : public AsyncWebHandler {
@@ -85,8 +138,13 @@ void setupRoutes() {
         doc["sta_ip"] = WiFi.localIP().toString();
         doc["uptime_seconds"] = millis() / 1000;
         doc["wifi_timeout_ms"] = wifi_timeout_ms;
+        doc["reconnect_interval_ms"] = reconnect_interval_ms;
         doc["auto_reconnect"] = auto_reconnect;
         doc["rssi"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
+        doc["connection_attempts"] = connectionAttempts;
+        doc["last_disconnect_reason"] = lastDisconnectReason;
+        doc["wifi_power_save"] = wifi_power_save;
+        doc["wifi_hostname"] = wifi_hostname;
 
         String response;
         serializeJson(doc, response);
@@ -97,18 +155,40 @@ void setupRoutes() {
     server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest *request){
         int n = WiFi.scanComplete();
         if(n == -2){
-            WiFi.scanNetworks(true);
+            WiFi.scanNetworks(true, true);
             request->send(202, "application/json", "{\"status\":\"scanning\"}");
         } else if(n == -1){
             request->send(202, "application/json", "{\"status\":\"scanning\"}");
         } else {
+            struct ScannedNetwork {
+                String ssid;
+                int32_t rssi;
+                bool open;
+                int32_t channel;
+            };
+
+            std::vector<ScannedNetwork> sorted;
+            sorted.reserve(n);
+            for (int i = 0; i < n; ++i) {
+                String ssid = WiFi.SSID(i);
+                if (ssid.length() == 0) {
+                    continue;
+                }
+                sorted.push_back({ssid, WiFi.RSSI(i), WiFi.encryptionType(i) == WIFI_AUTH_OPEN, WiFi.channel(i)});
+            }
+
+            std::sort(sorted.begin(), sorted.end(), [](const ScannedNetwork& a, const ScannedNetwork& b) {
+                return a.rssi > b.rssi;
+            });
+
             JsonDocument doc;
             JsonArray networks = doc["networks"].to<JsonArray>();
-            for (int i = 0; i < n; ++i) {
+            for (const auto &entry : sorted) {
                 JsonObject net = networks.add<JsonObject>();
-                net["ssid"] = WiFi.SSID(i);
-                net["rssi"] = WiFi.RSSI(i);
-                net["open"] = WiFi.encryptionType(i) == WIFI_AUTH_OPEN;
+                net["ssid"] = entry.ssid;
+                net["rssi"] = entry.rssi;
+                net["open"] = entry.open;
+                net["channel"] = entry.channel;
             }
             WiFi.scanDelete();
             String response;
@@ -134,11 +214,21 @@ void setupRoutes() {
         request->send(200, "application/json", "{\"status\":\"connecting\"}");
     });
 
+    server.on("/api/wifi/reconnect", HTTP_POST, [](AsyncWebServerRequest *request){
+        if (sta_ssid == "") {
+            request->send(400, "application/json", "{\"error\":\"No saved Wi-Fi\"}");
+            return;
+        }
+        shouldConnectWifi = true;
+        request->send(200, "application/json", "{\"status\":\"reconnecting\"}");
+    });
+
     server.on("/api/wifi/disconnect", HTTP_POST, [](AsyncWebServerRequest *request){
         WiFi.disconnect();
         sta_ssid = "";
         sta_password = "";
         saveConfig();
+        broadcastStatus("wifi-forgotten");
         request->send(200, "application/json", "{\"status\":\"disconnected\"}");
     });
 
@@ -168,8 +258,11 @@ void setupRoutes() {
         doc["token"] = custom_token;
         doc["domain"] = custom_domain;
         doc["device_name"] = device_name;
+        doc["wifi_hostname"] = wifi_hostname;
         doc["wifi_timeout_ms"] = wifi_timeout_ms;
+        doc["reconnect_interval_ms"] = reconnect_interval_ms;
         doc["auto_reconnect"] = auto_reconnect;
+        doc["wifi_power_save"] = wifi_power_save;
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response);
@@ -188,24 +281,54 @@ void setupRoutes() {
         if (doc["device_name"].is<String>()) {
             device_name = doc["device_name"].as<String>();
         }
+        if (doc["wifi_hostname"].is<String>()) {
+            String requestedHostname = doc["wifi_hostname"].as<String>();
+            requestedHostname.trim();
+            if (requestedHostname.length() >= 3 && requestedHostname.length() <= 32) {
+                wifi_hostname = requestedHostname;
+            }
+        }
         if (doc["wifi_timeout_ms"].is<uint32_t>()) {
             uint32_t requestedTimeout = doc["wifi_timeout_ms"].as<uint32_t>();
             if (requestedTimeout >= 5000 && requestedTimeout <= 60000) {
                 wifi_timeout_ms = requestedTimeout;
             }
         }
+        if (doc["reconnect_interval_ms"].is<uint32_t>()) {
+            uint32_t requestedReconnect = doc["reconnect_interval_ms"].as<uint32_t>();
+            if (requestedReconnect >= 3000 && requestedReconnect <= 120000) {
+                reconnect_interval_ms = requestedReconnect;
+            }
+        }
         if (doc["auto_reconnect"].is<bool>()) {
             auto_reconnect = doc["auto_reconnect"].as<bool>();
+        }
+        if (doc["wifi_power_save"].is<uint8_t>()) {
+            uint8_t requestedPowerSave = doc["wifi_power_save"].as<uint8_t>();
+            if (requestedPowerSave <= WIFI_PS_MAX_MODEM) {
+                wifi_power_save = requestedPowerSave;
+                applyWifiPowerSave();
+            }
         }
         saveConfig();
 
         request->send(200, "application/json", "{\"status\":\"saved\"}");
+        broadcastStatus("config-updated");
     });
 
     server.on("/api/system/restart", HTTP_POST, [](AsyncWebServerRequest *request){
         restartRequested = true;
         request->send(200, "application/json", "{\"status\":\"restarting\"}");
     });
+
+    events.onConnect([](AsyncEventSourceClient *client){
+        if(client->lastId()) {
+            Serial.printf("Client reconnected! Last message ID that it got is: %u\n", client->lastId());
+        }
+        client->send("connected", "hello", millis());
+        broadcastStatus("client-connected");
+    });
+    server.addHandler(&events);
 
     server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
@@ -216,6 +339,26 @@ void setupRoutes() {
             request->send(LittleFS, "/index.html", "text/html");
         }
     });
+}
+
+void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+    switch (event) {
+        case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+            Serial.println("Connected to Wi-Fi!");
+            Serial.print("IP Address: ");
+            Serial.println(WiFi.localIP());
+            lastDisconnectReason = "none";
+            wifiConnectStartTime = 0;
+            broadcastStatus("wifi-connected");
+            break;
+        case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+            lastDisconnectReason = String(info.wifi_sta_disconnected.reason);
+            Serial.printf("Wi-Fi disconnected. Reason code: %s\n", lastDisconnectReason.c_str());
+            broadcastStatus("wifi-disconnected");
+            break;
+        default:
+            break;
+    }
 }
 
 void setup() {
@@ -230,6 +373,9 @@ void setup() {
     loadConfig();
 
     WiFi.mode(WIFI_AP_STA);
+    WiFi.setHostname(wifi_hostname.c_str());
+    applyWifiPowerSave();
+    WiFi.onEvent(onWifiEvent);
     WiFi.softAP(AP_SSID);
     Serial.print("AP IP address: ");
     Serial.println(WiFi.softAPIP());
@@ -237,7 +383,9 @@ void setup() {
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
 
     if(sta_ssid != ""){
+        connectionAttempts++;
         WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
+        wifiConnectStartTime = millis();
         Serial.println("Connecting to saved Wi-Fi...");
     }
 
@@ -258,33 +406,39 @@ void loop() {
 
     if(shouldConnectWifi){
         shouldConnectWifi = false;
+        connectionAttempts++;
         WiFi.disconnect();
         delay(100);
         WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
         wifiConnectStartTime = millis();
         Serial.print("Connecting to ");
         Serial.println(sta_ssid);
+        broadcastStatus("wifi-connect-requested");
     }
 
     if(wifiConnectStartTime > 0){
         if(WiFi.status() == WL_CONNECTED){
-            Serial.println("Connected to Wi-Fi!");
-            Serial.print("IP Address: ");
-            Serial.println(WiFi.localIP());
             wifiConnectStartTime = 0;
         } else if(millis() - wifiConnectStartTime > wifi_timeout_ms){
             Serial.println("Wi-Fi connection timeout.");
             WiFi.disconnect();
+            lastDisconnectReason = "connect-timeout";
             wifiConnectStartTime = 0;
+            broadcastStatus("wifi-timeout");
         }
     }
 
     if (auto_reconnect && WiFi.status() != WL_CONNECTED && sta_ssid != "" && wifiConnectStartTime == 0) {
-        if (millis() - lastReconnectAttempt > 15000) {
+        if (millis() - lastReconnectAttempt > reconnect_interval_ms) {
             lastReconnectAttempt = millis();
             shouldConnectWifi = true;
             Serial.println("Auto-reconnect triggered");
         }
+    }
+
+    if (millis() - lastStatusBroadcast > 1000) {
+        lastStatusBroadcast = millis();
+        broadcastStatus("heartbeat");
     }
 
     if (restartRequested) {
@@ -292,5 +446,5 @@ void loop() {
         ESP.restart();
     }
 
-    delay(10);
+    delay(2);
 }

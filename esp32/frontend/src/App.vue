@@ -2,9 +2,12 @@
   <div class="app-shell">
     <Card>
       <template #title>
-        <div class="header-title">
-          <i class="pi pi-cog" />
-          ESP32 Device Console
+        <div class="header-wrap">
+          <div class="header-title">
+            <i class="pi pi-bolt" />
+            ESP32 Realtime Console
+          </div>
+          <p class="subtitle">Faster Wi-Fi diagnostics, cleaner setup flow, and richer device controls.</p>
         </div>
       </template>
       <template #content>
@@ -40,7 +43,10 @@ const activeIndex = computed(() => {
 <style>
 body {
   margin: 0;
-  background: linear-gradient(160deg, #f2f7ff 0%, #f6fff8 100%);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 45%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 40%),
+    linear-gradient(160deg, #f3f7ff 0%, #f7fff8 100%);
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -50,15 +56,26 @@ body {
 }
 
 .app-shell {
-  max-width: 920px;
+  max-width: 960px;
   margin: 0 auto;
+}
+
+.header-wrap {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .header-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.3rem;
+  font-size: 1.35rem;
+}
+
+.subtitle {
+  color: #4b5563;
+  margin: 0;
+  font-size: 0.92rem;
 }
 
 .p-card .p-card-content {
