@@ -1,86 +1,67 @@
 <template>
-  <div class="app-container">
-    <header>
-      <h1>ESP32 Configuration</h1>
-      <nav>
-        <router-link to="/">Dashboard</router-link>
-        <router-link to="/wifi">Wi-Fi_Setup</router-link>
-        <router-link to="/config">Settings</router-link>
-      </nav>
-    </header>
-    <main>
-      <router-view></router-view>
-    </main>
+  <div class="app-shell">
+    <Card>
+      <template #title>
+        <div class="header-title">
+          <i class="pi pi-cog" />
+          ESP32 Device Console
+        </div>
+      </template>
+      <template #content>
+        <TabMenu :model="menuItems" :activeIndex="activeIndex" class="mb-4" />
+        <router-view />
+      </template>
+    </Card>
   </div>
 </template>
 
+<script setup>
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import Card from 'primevue/card'
+import TabMenu from 'primevue/tabmenu'
+
+const route = useRoute()
+const router = useRouter()
+
+const menuItems = [
+  { label: 'Dashboard', icon: 'pi pi-home', command: () => router.push('/') },
+  { label: 'Wi-Fi', icon: 'pi pi-wifi', command: () => router.push('/wifi') },
+  { label: 'Settings', icon: 'pi pi-sliders-h', command: () => router.push('/config') }
+]
+
+const activeIndex = computed(() => {
+  if (route.path === '/wifi') return 1
+  if (route.path === '/config') return 2
+  return 0
+})
+</script>
+
 <style>
-.app-container {
-  max-width: 600px;
+body {
+  margin: 0;
+  background: linear-gradient(160deg, #f2f7ff 0%, #f6fff8 100%);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#app {
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.app-shell {
+  max-width: 920px;
   margin: 0 auto;
-  padding: 20px;
 }
-header {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-  text-align: center;
-}
-h1 {
-  margin-top: 0;
-  color: #2c3e50;
-}
-nav {
+
+.header-title {
   display: flex;
-  justify-content: center;
-  gap: 15px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
 }
-nav a {
-  text-decoration: none;
-  color: #3498db;
-  font-weight: bold;
-}
-nav a.router-link-active {
-  color: #2c3e50;
-  border-bottom: 2px solid #2c3e50;
-}
-main {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-button {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-button:hover {
-  background: #2980b9;
-}
-button:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-}
-input, select {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-  display: inline-block;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-label {
-  font-weight: bold;
+
+.p-card .p-card-content {
+  padding-top: 0;
 }
 </style>
