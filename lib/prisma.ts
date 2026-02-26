@@ -1,24 +1,15 @@
-import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
-  });
+  return new PrismaClient();
 };
 
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
+declare const globalThis: {
+  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
+} & typeof global;
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined;
-};
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+export { prisma };
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalThis.prismaGlobal = prisma;
