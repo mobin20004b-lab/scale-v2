@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { generateLotNumber } from '@/lib/stock-utils';
+
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -17,8 +17,8 @@ export async function GET() {
       scale: true,
     },
     orderBy: {
-      createdAt: 'desc',
-    },
+      createdAt: 'desc'
+    }
   });
   return NextResponse.json(ledgers);
 }
@@ -30,35 +30,33 @@ export async function POST(request: Request) {
   }
 
   const data = await request.json();
-
+  
   try {
-    const lotNumber = data.type === 'STOCK_IN' ? (data.sourceTxId || generateLotNumber()) : (data.sourceTxId ?? null);
-
     const ledger = await prisma.inventoryLedger.create({
       data: {
-        type: data.type,
+        type: data.type, // STOCK_IN, STOCK_OUT
         quantity: data.quantity,
         weight: data.weight,
-        sourceTxId: lotNumber,
         productId: data.productId,
         warehouseId: data.warehouseId,
         scaleId: data.scaleId,
         createdBy: session.user.id,
-      },
+      }
     });
 
+    // Log activity
     await prisma.activityLog.create({
       data: {
         actorId: session.user.id,
         action: data.type,
         entityType: 'INVENTORY_LEDGER',
         entityId: ledger.id,
-        details: JSON.stringify({ quantity: data.quantity, weight: data.weight, lotNumber }),
-      },
+        details: JSON.stringify({ quantity: data.quantity, weight: data.weight })
+      }
     });
 
     return NextResponse.json(ledger, { status: 201 });
-  } catch {
+  } catch (error) {
     return NextResponse.json({ error: 'Failed to create ledger entry' }, { status: 500 });
   }
 }
