@@ -40,6 +40,20 @@
     </Card>
 
     <Card>
+      <template #title>
+        <div class="card-title">
+          <span>Scale Weight</span>
+          <Tag :value="status.weight_available ? 'Live' : 'No Data'" :severity="status.weight_available ? 'success' : 'warning'" />
+        </div>
+      </template>
+      <template #content>
+        <p class="weight-value">{{ formattedWeight }}</p>
+        <p><strong>Raw frame:</strong> {{ status.weight_raw || 'No Data' }}</p>
+        <p><strong>Last upload:</strong> {{ uploadStatus }}</p>
+      </template>
+    </Card>
+
+    <Card>
       <template #title>Diagnostics</template>
       <template #content>
         <p><strong>Uptime:</strong> {{ uptimeText }}</p>
@@ -137,6 +151,20 @@ const ledSeverity = computed(() => {
     case 'error': return 'danger'
     default: return 'contrast'
   }
+})
+
+const formattedWeight = computed(() => {
+  if (!status.value.weight_available) return '-'
+  const value = Number(status.value.weight_value)
+  if (!Number.isFinite(value)) return '-'
+  return `${value.toFixed(3)}`
+})
+
+const uploadStatus = computed(() => {
+  if (!status.value.weight_last_post_ms) return 'Not uploaded yet'
+  const code = status.value.weight_last_post_code
+  const result = status.value.weight_last_post_result || 'unknown'
+  return `HTTP ${code} (${result})`
 })
 
 const makePath = (values) => {
@@ -298,5 +326,11 @@ onUnmounted(() => {
 
 .muted {
   color: #6b7280;
+}
+
+.weight-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.25rem 0 0.75rem;
 }
 </style>
