@@ -100,9 +100,13 @@ static std::vector<ScannedNetwork> cachedNetworks;
 static bool wifiScanInProgress = false;
 static unsigned long wifiScanStartedMs = 0;
 static unsigned long wifiLastScanCompletedMs = 0;
+static unsigned long wifiScanRetryAfterMs = 0;
+static uint8_t wifiScanRetryCount = 0;
 
 const uint32_t WIFI_SCAN_STALE_MS = 30000;
 const uint32_t WIFI_SCAN_TIMEOUT_MS = 10000;
+const uint8_t WIFI_SCAN_MAX_RETRIES = 3;
+const uint16_t WIFI_SCAN_MAX_RESULTS = 50;
 const char *const WIFI_SCAN_CACHE_PATH = "/wifi_scan_cache.json";
 
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 15000;
@@ -237,6 +241,14 @@ static void updateWifiScanState() {
   if (n == WIFI_SCAN_RUNNING)
     return;
 
+  if (n == WIFI_SCAN_FAILED) {
+    wifiScanInProgress = false;
+    wifiLastError = "scan-failed";
+    WiFi.scanDelete();
+    Serial.println("[WiFi] Scan failed");
+    return;
+  }
+
   if (n < 0) {
     if (millis() - wifiScanStartedMs > WIFI_SCAN_TIMEOUT_MS) {
       wifiScanInProgress = false;
@@ -247,9 +259,27 @@ static void updateWifiScanState() {
     return;
   }
 
+  wifiScanInProgress = false;
+  wifiScanRetryCount = 0;
+
+  if (n == 0) {
+    cachedNetworks.clear();
+    wifiLastScanCompletedMs = millis();
+    saveCachedNetworksToFile();
+    WiFi.scanDelete();
+    Serial.println("[WiFi] Scan completed with no visible networks");
+    return;
+  }
+
+  const int safeResultCount = std::min(n, (int)WIFI_SCAN_MAX_RESULTS);
+  if (n > (int)WIFI_SCAN_MAX_RESULTS) {
+    Serial.printf("[WiFi] Scan returned %d networks; limiting to %u entries\n",
+                  n, WIFI_SCAN_MAX_RESULTS);
+  }
+
   std::vector<ScannedNetwork> sorted;
-  sorted.reserve(n);
-  for (int i = 0; i < n; ++i) {
+  sorted.reserve(safeResultCount);
+  for (int i = 0; i < safeResultCount; ++i) {
     String ssid = WiFi.SSID(i);
     if (ssid.length() == 0)
       continue;
@@ -262,13 +292,23 @@ static void updateWifiScanState() {
   cachedNetworks = sorted;
   wifiLastScanCompletedMs = millis();
   saveCachedNetworksToFile();
-  wifiScanInProgress = false;
   WiFi.scanDelete();
 }
 
 static bool startWifiScan() {
+  if (wifiScanInProgress) {
+    return true;
+  }
+
+  if (WiFi.getMode() == WIFI_OFF) {
+    wifiLastError = "scan-wifi-off";
+    Serial.println("[WiFi] Scan skipped: WiFi mode is off");
+    return false;
+  }
+
+  WiFi.scanDelete();
   int result = WiFi.scanNetworks(/*async=*/true, /*show_hidden=*/true);
-  if (result < 0) {
+  if (result == WIFI_SCAN_FAILED || result == WIFI_SCAN_RUNNING || result < 0) {
     wifiLastError = "scan-start-failed";
     Serial.printf("[WiFi] Failed to start scan: %d\n", result);
     return false;
@@ -288,10 +328,22 @@ static void requestWifiScan(bool forceRescan) {
 
   if (wifiScanInProgress)
     return;
+  if (wifiScanRetryAfterMs > 0 && millis() < wifiScanRetryAfterMs)
+    return;
   if (!forceRescan && hasFreshCache)
     return;
 
-  startWifiScan();
+  if (!startWifiScan()) {
+    if (wifiScanRetryCount < WIFI_SCAN_MAX_RETRIES) {
+      wifiScanRetryCount++;
+      wifiScanRetryAfterMs = millis() + 250;
+      return;
+    }
+    wifiScanRetryAfterMs = 0;
+    wifiScanRetryCount = 0;
+  } else {
+    wifiScanRetryAfterMs = 0;
+  }
 }
 
 static void requestWifiConnect(const char *reason) {
