@@ -41,7 +41,7 @@ export default function IncomingGoods() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/scales');
+        const res = await fetch(`/api/scales?t=\${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
           const sv = await res.json();
           setScales(sv);
