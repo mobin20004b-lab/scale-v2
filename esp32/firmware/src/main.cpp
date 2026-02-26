@@ -10,8 +10,9 @@
 #include <WiFiClientSecure.h>
 #include <algorithm>
 #include <ctype.h>
-#include <vector>
 #include <cstring>
+#include <stdarg.h>
+#include <vector>
 
 // ─── Forward declarations ────────────────────────────────────────────────────
 void broadcastStatus(const char *reason = "update");
@@ -108,8 +109,39 @@ const char *const WIFI_SCAN_CACHE_PATH = "/wifi_scan_cache.json";
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 15000;
 const uint32_t WIFI_RECONNECT_INTERVAL_MS = 15000;
 const uint32_t WIFI_RECONNECT_MAX_INTERVAL_MS = 60000;
+const size_t LOG_FILE_MAX_BYTES = 32768;
+const char *const LOG_FILE_PATH = "/serial.log";
 
 static uint32_t wifiReconnectIntervalMs = WIFI_RECONNECT_INTERVAL_MS;
+
+static void appendLogLine(const String &line) {
+  Serial.println(line);
+
+  File current = LittleFS.open(LOG_FILE_PATH, FILE_READ);
+  size_t currentSize = current ? current.size() : 0;
+  if (current)
+    current.close();
+
+  if (currentSize > LOG_FILE_MAX_BYTES) {
+    LittleFS.remove(LOG_FILE_PATH);
+  }
+
+  File file = LittleFS.open(LOG_FILE_PATH, FILE_APPEND);
+  if (!file)
+    return;
+
+  file.println(line);
+  file.close();
+}
+
+static void logf(const char *fmt, ...) {
+  char buffer[256];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buffer, sizeof(buffer), fmt, args);
+  va_end(args);
+  appendLogLine(String(buffer));
+}
 
 static void dedupeAndSortNetworks(std::vector<ScannedNetwork> &networks) {
   std::sort(networks.begin(), networks.end(),
@@ -172,12 +204,12 @@ static void saveCachedNetworksToFile() {
 
   File file = LittleFS.open(WIFI_SCAN_CACHE_PATH, FILE_WRITE);
   if (!file) {
-    Serial.println("[WiFi] Failed to open scan cache file for writing");
+    logf("[WiFi] Failed to open scan cache file for writing");
     return;
   }
 
   if (serializeJson(doc, file) == 0) {
-    Serial.println("[WiFi] Failed to write scan cache file");
+    logf("[WiFi] Failed to write scan cache file");
   }
 
   file.close();
@@ -189,7 +221,7 @@ static void loadCachedNetworksFromFile() {
 
   File file = LittleFS.open(WIFI_SCAN_CACHE_PATH, FILE_READ);
   if (!file) {
-    Serial.println("[WiFi] Failed to open scan cache file for reading");
+    logf("[WiFi] Failed to open scan cache file for reading");
     return;
   }
 
@@ -198,7 +230,7 @@ static void loadCachedNetworksFromFile() {
   file.close();
 
   if (error) {
-    Serial.printf("[WiFi] Invalid scan cache file: %s\n", error.c_str());
+    logf("[WiFi] Invalid scan cache file: %s", error.c_str());
     LittleFS.remove(WIFI_SCAN_CACHE_PATH);
     return;
   }
@@ -225,8 +257,8 @@ static void loadCachedNetworksFromFile() {
     wifiLastScanCompletedMs = 0;
   }
 
-  Serial.printf("[WiFi] Restored %u cached networks from LittleFS\n",
-                (unsigned)cachedNetworks.size());
+  logf("[WiFi] Restored %u cached networks from LittleFS",
+       (unsigned)cachedNetworks.size());
 }
 
 static void updateWifiScanState() {
@@ -238,11 +270,19 @@ static void updateWifiScanState() {
     return;
 
   if (n < 0) {
+    if (n == WIFI_SCAN_FAILED) {
+      wifiScanInProgress = false;
+      wifiLastError = "scan-failed";
+      WiFi.scanDelete();
+      logf("[WiFi] Scan failed (driver error)");
+      return;
+    }
+
     if (millis() - wifiScanStartedMs > WIFI_SCAN_TIMEOUT_MS) {
       wifiScanInProgress = false;
       wifiLastError = "scan-timeout";
       WiFi.scanDelete();
-      Serial.println("[WiFi] Scan timeout");
+      logf("[WiFi] Scan timeout");
     }
     return;
   }
@@ -263,14 +303,28 @@ static void updateWifiScanState() {
   wifiLastScanCompletedMs = millis();
   saveCachedNetworksToFile();
   wifiScanInProgress = false;
+  wifiLastError = "scan-ready";
   WiFi.scanDelete();
+  logf("[WiFi] Scan completed with %u networks", (unsigned)cachedNetworks.size());
 }
 
 static bool startWifiScan() {
+  int scanState = WiFi.scanComplete();
+  if (scanState == WIFI_SCAN_RUNNING) {
+    wifiScanInProgress = true;
+    if (wifiScanStartedMs == 0)
+      wifiScanStartedMs = millis();
+    return true;
+  }
+
+  if (scanState >= 0 || scanState == WIFI_SCAN_FAILED) {
+    WiFi.scanDelete();
+  }
+
   int result = WiFi.scanNetworks(/*async=*/true, /*show_hidden=*/true);
   if (result < 0) {
     wifiLastError = "scan-start-failed";
-    Serial.printf("[WiFi] Failed to start scan: %d\n", result);
+    logf("[WiFi] Failed to start scan: %d", result);
     return false;
   }
 
@@ -298,6 +352,16 @@ static void requestWifiConnect(const char *reason) {
   if (staSsid.length() == 0)
     return;
 
+  wl_status_t wifiStatus = WiFi.status();
+  if (wifiStatus == WL_CONNECTED) {
+    if (WiFi.SSID() == staSsid) {
+      wifiLastError = "already-connected";
+      wifiConnectStartMs = 0;
+      return;
+    }
+    WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/false);
+  }
+
   shouldConnectWifi = false;
   wifiLastAttemptMs = millis();
   wifiLastError = "connecting";
@@ -305,7 +369,7 @@ static void requestWifiConnect(const char *reason) {
   WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/false);
   WiFi.begin(staSsid.c_str(), staPassword.c_str());
   wifiConnectStartMs = millis();
-  Serial.printf("[WiFi] Connecting to '%s' (%s)…\n", staSsid.c_str(), reason);
+  logf("[WiFi] Connecting to '%s' (%s)", staSsid.c_str(), reason);
   broadcastStatus(reason);
 }
 
@@ -686,6 +750,12 @@ static void setupRoutes() {
 
         staSsid = ssid;
         staPassword = doc["password"] | "";
+        if (staPassword.length() > 0 && staPassword.length() < 8) {
+          request->send(400, "application/json",
+                        "{\"error\":\"password must be at least 8 chars\"}");
+          return;
+        }
+
         saveConfig();
         wifiLastError = "connecting";
         wifiLastDisconnectReason = 0;
@@ -693,8 +763,37 @@ static void setupRoutes() {
         wifiNextReconnectAtMs = 0;
         shouldConnectWifi = true;
 
-        request->send(200, "application/json", "{\"status\":\"connecting\"}");
+        JsonDocument response;
+        response["status"] = "connecting";
+        response["ssid"] = staSsid;
+        response["message"] = "Connection attempt started";
+        String payload;
+        serializeJson(response, payload);
+        request->send(200, "application/json", payload);
       });
+
+  // GET /api/logs - serial logs persisted in LittleFS
+  server.on("/api/logs", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!LittleFS.exists(LOG_FILE_PATH)) {
+      request->send(200, "text/plain", "No logs yet");
+      return;
+    }
+
+    File file = LittleFS.open(LOG_FILE_PATH, FILE_READ);
+    if (!file) {
+      request->send(500, "application/json",
+                    "{\"error\":\"failed to open log file\"}");
+      return;
+    }
+
+    String output;
+    output.reserve(1024);
+    while (file.available()) {
+      output += static_cast<char>(file.read());
+    }
+    file.close();
+    request->send(200, "text/plain", output);
+  });
 
   // POST /api/wifi/disconnect – forget saved credentials and disconnect
   server.on(
@@ -804,10 +903,10 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  Serial.println("\n\n=== ESP32-S3 Scale firmware booting ===");
+  appendLogLine("\n\n=== ESP32-S3 Scale firmware booting ===");
 
   if (!LittleFS.begin(/*formatOnFail=*/true)) {
-    Serial.println("[ERROR] LittleFS mount failed – halting");
+    appendLogLine("[ERROR] LittleFS mount failed - halting");
     while (true)
       delay(1000);
   }
@@ -823,8 +922,8 @@ void setup() {
   WiFi.onEvent(onWifiEvent);
   WiFi.softAP(AP_SSID);
 
-  Serial.printf("[WiFi] AP started – SSID: %s  IP: %s\n", AP_SSID,
-                WiFi.softAPIP().toString().c_str());
+  logf("[WiFi] AP started - SSID: %s IP: %s", AP_SSID,
+       WiFi.softAPIP().toString().c_str());
 
   // Captive-portal DNS: redirect all DNS queries to our AP IP
   dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
@@ -846,7 +945,7 @@ void setup() {
     shouldConnectWifi = true;
   }
 
-  Serial.println("[Boot] Done.");
+  appendLogLine("[Boot] Done.");
 }
 
 // ─── loop ────────────────────────────────────────────────────────────────────
@@ -857,13 +956,12 @@ void loop() {
   // 2. Act on WiFi events flagged from the event handler
   if (wifiGotIp) {
     wifiGotIp = false;
-    Serial.printf("[WiFi] Connected – IP: %s\n",
-                  WiFi.localIP().toString().c_str());
+    logf("[WiFi] Connected - IP: %s", WiFi.localIP().toString().c_str());
     broadcastStatus("wifi-connected");
   }
   if (wifiDisconnected) {
     wifiDisconnected = false;
-    Serial.println("[WiFi] Disconnected");
+    appendLogLine("[WiFi] Disconnected");
     broadcastStatus("wifi-disconnected");
   }
 
@@ -879,7 +977,7 @@ void loop() {
 
     WiFi.disconnect(/*wifioff=*/false);
     markWifiConnectFailure("timeout");
-    Serial.println("[WiFi] Connect timeout");
+    appendLogLine("[WiFi] Connect timeout");
     broadcastStatus("wifi-timeout");
   }
 
