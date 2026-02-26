@@ -11,6 +11,11 @@
     </header>
 
     <main class="content">
+      <section class="page-intro">
+        <h1 class="page-title">Device Console</h1>
+        <p class="page-subtitle">Material 3 tuned layout for scale status, connectivity, and upload settings.</p>
+      </section>
+
       <!-- ── Stats row ─────────────────────────────────────────────────────── -->
       <div class="stats">
         <Card title="Weight">
@@ -42,7 +47,7 @@
       <div class="panels">
         <!-- Wi-Fi setup -->
         <Card title="Wi-Fi Setup">
-          <div class="btn-row">
+          <div class="btn-row btn-row--split">
             <Button :loading="scanning" @click="startScan">Scan Networks</Button>
             <Button
               variant="destructive"
@@ -92,6 +97,7 @@
 
         <!-- Settings -->
         <Card title="Settings">
+          <div class="stack-md">
           <div class="field">
             <label>Upload interval
               <span class="hint">1 000 – 600 000 ms</span>
@@ -104,9 +110,22 @@
               step="1000"
             />
           </div>
-          <Button variant="primary" :loading="savingInterval" @click="saveInterval">
-            Save Interval
+          <div class="field">
+            <label>Upload API token
+              <span class="hint">Bearer token without the "Bearer" prefix</span>
+            </label>
+            <Input
+              v-model="uploadAuthToken"
+              type="text"
+              autocomplete="off"
+              placeholder="a854aecf-da96-4f02-801d-77212c5e71cf"
+            />
+          </div>
+
+          <Button variant="primary" :loading="savingSettings" @click="saveSettings">
+            Save Settings
           </Button>
+          </div>
 
           <div class="divider"></div>
 
@@ -116,6 +135,7 @@
             <div class="kv-row"><span>AP IP</span><span class="mono">{{ status.ap_ip || '—' }}</span></div>
             <div class="kv-row"><span>AP SSID</span><span class="mono">{{ status.ap_ssid || '—' }}</span></div>
             <div class="kv-row"><span>Upload interval</span><span class="mono">{{ status.upload_interval_ms }} ms</span></div>
+            <div class="kv-row"><span>API token configured</span><span class="mono">{{ status.upload_auth_token_configured ? 'Yes' : 'No' }}</span></div>
           </div>
         </Card>
       </div>
@@ -148,8 +168,9 @@ const selectedSsid     = ref('')
 const wifiPassword     = ref('')
 const connecting       = ref(false)
 const forgetting       = ref(false)
-const savingInterval   = ref(false)
+const savingSettings   = ref(false)
 const uploadIntervalMs = ref(5000)
+const uploadAuthToken  = ref('')
 const connected        = ref(false)
 const toast            = ref(null)
 const bootLoading      = ref(true)
@@ -316,25 +337,34 @@ const loadSettings = async () => {
     if (res.ok) {
       const data = await res.json()
       uploadIntervalMs.value = data.upload_interval_ms ?? 5000
+      uploadAuthToken.value = data.upload_auth_token ?? ''
     }
   } catch { /* ignore on boot */ }
 }
 
-const saveInterval = async () => {
+const saveSettings = async () => {
   const val = Number(uploadIntervalMs.value)
   if (!Number.isInteger(val) || val < 1000 || val > 600000) {
     showToast('Interval must be 1 000 – 600 000 ms.', true)
     return
   }
-  savingInterval.value = true
+  const token = uploadAuthToken.value.trim()
+  if (!token) {
+    showToast('API token is required.', true)
+    return
+  }
+  savingSettings.value = true
   try {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ upload_interval_ms: val })
+      body: JSON.stringify({
+        upload_interval_ms: val,
+        upload_auth_token: token
+      })
     })
     if (res.ok) {
-      showToast('Upload interval saved.')
+      showToast('Settings saved.')
     } else {
       const body = await res.json().catch(() => ({}))
       showToast(body.error ?? `Server error ${res.status}`, true)
@@ -342,7 +372,7 @@ const saveInterval = async () => {
   } catch {
     showToast('Request failed.', true)
   } finally {
-    savingInterval.value = false
+    savingSettings.value = false
   }
 }
 
