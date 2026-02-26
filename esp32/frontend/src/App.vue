@@ -51,6 +51,7 @@
         <Card title="Wi-Fi Setup" class="animate-in" style="--delay: 340ms">
           <div class="btn-row btn-row--split">
             <Button :loading="scanning" @click="startScan">{{ scanButtonLabel }}</Button>
+            <Button @click="manualSsid = true">Manual SSID</Button>
             <Button
               variant="destructive"
               :disabled="!status.sta_connected || forgetting"
@@ -76,10 +77,10 @@
           </div>
 
           <!-- Connect form -->
-          <template v-if="selectedSsid">
+          <template v-if="selectedSsid || manualSsid">
             <div class="field">
               <label>SSID</label>
-              <Input :modelValue="selectedSsid" disabled />
+              <Input v-model="selectedSsid" :disabled="!manualSsid" placeholder="Wi-Fi name" />
             </div>
             <div class="field">
               <label>Password</label>
@@ -92,7 +93,7 @@
             </div>
             <div class="btn-row">
               <Button variant="primary" :loading="connecting" @click="connectWifi">Connect</Button>
-              <Button @click="selectedSsid = ''; wifiPassword = ''">Cancel</Button>
+              <Button @click="selectedSsid = ''; wifiPassword = ''; manualSsid = false">Cancel</Button>
             </div>
           </template>
         </Card>
@@ -167,6 +168,7 @@ const status           = ref({})
 const networks         = ref([])
 const scanning         = ref(false)
 const selectedSsid     = ref('')
+const manualSsid       = ref(false)
 const wifiPassword     = ref('')
 const connecting       = ref(false)
 const forgetting       = ref(false)
@@ -305,6 +307,7 @@ const startScan = () => {
   scanning.value  = true
   networks.value  = []
   selectedSsid.value = ''
+  manualSsid.value = false
   wifiPassword.value = ''
   fetch('/api/wifi/scan?refresh=1').catch(() => {})
   pollScan()
@@ -312,6 +315,7 @@ const startScan = () => {
 
 // ── Connect / forget ──────────────────────────────────────────────────────────
 const selectNetwork = (net) => {
+  manualSsid.value = false
   selectedSsid.value = net.ssid
   wifiPassword.value = ''
 }
@@ -326,8 +330,10 @@ const connectWifi = async () => {
       body: JSON.stringify({ ssid: selectedSsid.value, password: wifiPassword.value })
     })
     if (res.ok) {
-      showToast('Connect request sent. Waiting for device…')
+      const body = await res.json().catch(() => ({}))
+      showToast(body.message ?? 'Connect request sent. Waiting for device…')
       selectedSsid.value = ''
+      manualSsid.value = false
       wifiPassword.value = ''
     } else {
       const body = await res.json().catch(() => ({}))
