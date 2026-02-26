@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <ctype.h>
 #include <vector>
+#include <cstring>
 
 // ─── Forward declarations ────────────────────────────────────────────────────
 void broadcastStatus(const char *reason = "update");
@@ -64,6 +65,8 @@ static String lastUploadResponse = "";
 #define SCALE_BUF_SIZE 128
 static char scaleBuf[SCALE_BUF_SIZE];
 static uint8_t scaleBufLen = 0;
+
+const size_t SCALE_FRAME_LEN = 11; // e.g. "ww000.000kg"
 
 // WiFi event flags set from ISR, acted on in loop()
 static volatile bool wifiGotIp = false;
@@ -179,6 +182,42 @@ static bool tryParseWeight(const char *input, size_t len, float &parsedWeight) {
   return true;
 }
 
+// Tries to find a full scale frame in `input` with this exact shape:
+//   ww000.000kg
+// and returns both the full raw frame and the numeric value.
+static bool tryExtractWeightFrame(const char *input, size_t len, String &rawFrame,
+                                  float &parsedWeight) {
+  if (len < SCALE_FRAME_LEN)
+    return false;
+
+  for (size_t i = 0; i + SCALE_FRAME_LEN <= len; ++i) {
+    const char *p = input + i;
+
+    bool matches =
+        isalpha((unsigned char)p[0]) && isalpha((unsigned char)p[1]) &&
+        isdigit((unsigned char)p[2]) && isdigit((unsigned char)p[3]) &&
+        isdigit((unsigned char)p[4]) && p[5] == '.' &&
+        isdigit((unsigned char)p[6]) && isdigit((unsigned char)p[7]) &&
+        isdigit((unsigned char)p[8]) &&
+        tolower((unsigned char)p[9]) == 'k' &&
+        tolower((unsigned char)p[10]) == 'g';
+
+    if (!matches)
+      continue;
+
+    rawFrame = String(p, SCALE_FRAME_LEN);
+
+    char numericPart[8]; // "000.000" + '\0'
+    memcpy(numericPart, p + 2, 7);
+    numericPart[7] = '\0';
+    parsedWeight = strtof(numericPart, nullptr);
+
+    return !isnan(parsedWeight);
+  }
+
+  return false;
+}
+
 // ─── Scale UART reader – non-blocking ────────────────────────────────────────
 // Accumulates bytes into scaleBuf and only processes a complete line
 // (terminated by \n or \r\n). No delay() calls.
@@ -206,14 +245,25 @@ static void readWeightFromScale() {
 
         size_t frameLen = end - start;
         if (frameLen > 0) {
-          // Copy trimmed frame into latestWeightRaw
-          latestWeightRaw = String(scaleBuf + start, frameLen);
-          lastWeightReadMs = millis();
-
           float parsed = NAN;
-          if (tryParseWeight(scaleBuf + start, frameLen, parsed)) {
+          String extractedRaw;
+
+          // Prefer strict frame parsing first (e.g. "ww000.000kg")
+          if (tryExtractWeightFrame(scaleBuf + start, frameLen, extractedRaw,
+                                    parsed)) {
+            latestWeightRaw = extractedRaw;
             latestWeightValue = parsed;
             hasWeightValue = true;
+            lastWeightReadMs = millis();
+          } else {
+            // Fallback: keep trimmed raw line and parse any numeric value in it
+            latestWeightRaw = String(scaleBuf + start, frameLen);
+            lastWeightReadMs = millis();
+
+            if (tryParseWeight(scaleBuf + start, frameLen, parsed)) {
+              latestWeightValue = parsed;
+              hasWeightValue = true;
+            }
           }
         }
       }
