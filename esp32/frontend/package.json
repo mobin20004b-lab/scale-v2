@@ -6,10 +6,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "primeicons": "^7.0.0",
-    "primevue": "^3.53.1",
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue": "^3.4.21"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
