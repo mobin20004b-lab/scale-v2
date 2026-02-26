@@ -7,7 +7,7 @@
           {{ connected ? 'Online' : 'Offline' }}
         </Badge>
       </div>
-      <span class="uptime">{{ uptimeText }}</span>
+      <span class="uptime">{{ bootLoading ? 'Loading…' : uptimeText }}</span>
     </header>
 
     <main class="content">
@@ -55,9 +55,9 @@
           </div>
 
           <!-- Network list -->
-          <div v-if="networks.length" class="net-list">
+          <div v-if="uniqueNetworks.length" class="net-list">
             <button
-              v-for="net in networks"
+              v-for="net in uniqueNetworks"
               :key="net.ssid"
               class="net-row"
               :class="{ 'net-row--active': selectedSsid === net.ssid }"
@@ -152,6 +152,7 @@ const savingInterval   = ref(false)
 const uploadIntervalMs = ref(5000)
 const connected        = ref(false)
 const toast            = ref(null)
+const bootLoading      = ref(true)
 
 let pollTimer     = null
 let scanPollTimer = null
@@ -201,6 +202,18 @@ const formatBytes = (bytes) => {
   if (n < 1024 * 1024)  return `${(n / 1024).toFixed(1)} KB`
   return `${(n / (1024 * 1024)).toFixed(2)} MB`
 }
+
+const uniqueNetworks = computed(() => {
+  const bestBySsid = new Map()
+  for (const net of networks.value) {
+    if (!net?.ssid) continue
+    const current = bestBySsid.get(net.ssid)
+    if (!current || Number(net.rssi ?? -999) > Number(current.rssi ?? -999)) {
+      bestBySsid.set(net.ssid, net)
+    }
+  }
+  return [...bestBySsid.values()].sort((a, b) => Number(b.rssi ?? -999) - Number(a.rssi ?? -999))
+})
 
 // ── Status polling ────────────────────────────────────────────────────────────
 const fetchStatus = async () => {
@@ -336,6 +349,7 @@ const saveInterval = async () => {
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
   await Promise.all([fetchStatus(), loadSettings()])
+  bootLoading.value = false
   pollTimer = setInterval(fetchStatus, POLL_MS)
 })
 

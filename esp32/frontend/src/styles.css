@@ -21,11 +21,16 @@
 }
 
 body {
+  margin: 0;
   font-family: var(--sans-font);
-  background: var(--bg);
+  background: radial-gradient(circle at top, #151923 0%, var(--bg) 35%);
   color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
 }
 
 /* ── Topbar ──────────────────────────────────────────────────────────────────── */
@@ -150,10 +155,11 @@ body {
 
 /* ── UI Card ─────────────────────────────────────────────────────────────────── */
 .ui-card {
-  background: var(--surface);
+  background: #12161d;
   border: 1px solid var(--border);
   border-radius: var(--r);
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
 }
 
 .ui-card-header {
@@ -182,12 +188,12 @@ body {
   font-size: .83rem;
   font-weight: 500;
   padding: .48rem 1rem;
-  border-radius: 7px;
+  border-radius: 8px;
   border: 1px solid var(--border-hi);
-  background: var(--bg);
+  background: #11141b;
   color: var(--text);
   cursor: pointer;
-  transition: background .12s, border-color .12s, opacity .12s;
+  transition: background .12s, border-color .12s, opacity .12s, box-shadow .12s;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -198,6 +204,11 @@ body {
 .ui-button:hover:not(:disabled) {
   background: #1a1e26;
   border-color: #3a4050;
+}
+
+.ui-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, .45);
 }
 
 .ui-button:disabled {
@@ -232,10 +243,10 @@ body {
 
 /* ── UI Input ────────────────────────────────────────────────────────────────── */
 .ui-input {
-  background: var(--bg);
+  background: #0f1218;
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 7px;
+  border-radius: 8px;
   padding: .5rem .75rem;
   font-size: .875rem;
   font-family: var(--sans-font);
@@ -246,6 +257,7 @@ body {
 
 .ui-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, .35);
 }
 
 .ui-input:disabled {
