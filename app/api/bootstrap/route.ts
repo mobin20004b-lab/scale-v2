@@ -3,7 +3,17 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+function isPrismaDuplicateError(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+  );
+}
 
 const SETTINGS_FILE_PATH = path.join(process.cwd(), 'data', 'system-settings.json');
 
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       await tx.user.create({
         data: {
           name,
@@ -84,7 +94,7 @@ export async function POST(request: Request) {
       });
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (isPrismaDuplicateError(error) && error.code === 'P2002') {
       return NextResponse.json({ error: 'Duplicate user information.' }, { status: 409 });
     }
 

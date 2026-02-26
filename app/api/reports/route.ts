@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         }
       });
       // Filter out those with low stock (e.g., < 10)
-      const lowStock = inventory.filter(i => (i._sum.quantity || 0) < 10);
+      const lowStock = inventory.filter((i: (typeof inventory)[number]) => (i._sum.quantity || 0) < 10);
       return NextResponse.json(lowStock);
     }
 
