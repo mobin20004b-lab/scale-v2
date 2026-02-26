@@ -1,0 +1,1 @@
+# This file is here to ensure the public directory is tracked and exists during Docker builds.
