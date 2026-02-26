@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
-type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type TransactionClient = Prisma.TransactionClient;
 
 function isPrismaDuplicateError(error: unknown): error is { code: string } {
   return (
