@@ -37,6 +37,20 @@ model Product {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   ledgerEntries InventoryLedger[]
+  lots          Lot[]
+}
+
+model Lot {
+  id            String            @id @default(cuid())
+  lotNumber     String            @unique
+  barcode       String            @unique
+  qrCode        String            @unique
+  productId     String
+  product       Product           @relation(fields: [productId], references: [id])
+  quantity      Float             @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  ledgerEntries InventoryLedger[]
 }
 
 model Warehouse {
@@ -88,9 +102,11 @@ model InventoryLedger {
   productId   String
   warehouseId String
   scaleId     String?
+  lotId       String?
   product     Product    @relation(fields: [productId], references: [id])
   scale       Scale?     @relation(fields: [scaleId], references: [id])
   warehouse   Warehouse  @relation(fields: [warehouseId], references: [id])
+  lot         Lot?       @relation(fields: [lotId], references: [id])
 }
 
 model UnknownBarcode {
