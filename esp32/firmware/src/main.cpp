@@ -61,6 +61,10 @@ static volatile bool shouldConnectWifi = false;
 static unsigned long wifiConnectStartMs = 0;
 static unsigned long lastReconnectAttemptMs = 0;
 static unsigned long lastStatusBroadcastMs = 0;
+static unsigned long wifiLastAttemptMs = 0;
+static unsigned long wifiLastConnectedMs = 0;
+static String wifiLastError = "idle";
+static int32_t wifiLastDisconnectReason = 0;
 
 // Weight
 static String latestWeightRaw = "";
@@ -85,8 +89,104 @@ const size_t SCALE_FRAME_LEN = 11; // e.g. "ww000.000kg"
 static volatile bool wifiGotIp = false;
 static volatile bool wifiDisconnected = false;
 
+struct ScannedNetwork {
+  String ssid;
+  int32_t rssi;
+  bool open;
+};
+
+static std::vector<ScannedNetwork> cachedNetworks;
+static bool wifiScanInProgress = false;
+static unsigned long wifiScanStartedMs = 0;
+static unsigned long wifiLastScanCompletedMs = 0;
+
+const uint32_t WIFI_SCAN_STALE_MS = 30000;
+const uint32_t WIFI_SCAN_TIMEOUT_MS = 10000;
+
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 15000;
 const uint32_t WIFI_RECONNECT_INTERVAL_MS = 15000;
+
+static const char *wifiDisconnectReasonText(int32_t reason) {
+  switch (reason) {
+  case WIFI_REASON_AUTH_EXPIRE:
+    return "auth-expired";
+  case WIFI_REASON_AUTH_FAIL:
+    return "auth-failed";
+  case WIFI_REASON_ASSOC_FAIL:
+    return "association-failed";
+  case WIFI_REASON_HANDSHAKE_TIMEOUT:
+    return "handshake-timeout";
+  case WIFI_REASON_BEACON_TIMEOUT:
+    return "beacon-timeout";
+  case WIFI_REASON_NO_AP_FOUND:
+    return "ap-not-found";
+  case WIFI_REASON_CONNECTION_FAIL:
+    return "connection-failed";
+  default:
+    return "disconnected";
+  }
+}
+
+static void updateWifiScanState() {
+  if (!wifiScanInProgress)
+    return;
+
+  int n = WiFi.scanComplete();
+  if (n == WIFI_SCAN_RUNNING)
+    return;
+
+  if (n < 0) {
+    if (millis() - wifiScanStartedMs > WIFI_SCAN_TIMEOUT_MS) {
+      wifiScanInProgress = false;
+      WiFi.scanDelete();
+    }
+    return;
+  }
+
+  std::vector<ScannedNetwork> sorted;
+  sorted.reserve(n);
+  for (int i = 0; i < n; ++i) {
+    String ssid = WiFi.SSID(i);
+    if (ssid.length() == 0)
+      continue;
+    sorted.push_back({ssid, WiFi.RSSI(i),
+                      WiFi.encryptionType(i) == WIFI_AUTH_OPEN});
+  }
+
+  std::sort(sorted.begin(), sorted.end(),
+            [](const ScannedNetwork &a, const ScannedNetwork &b) {
+              return a.rssi > b.rssi;
+            });
+  sorted.erase(std::unique(sorted.begin(), sorted.end(),
+                           [](const ScannedNetwork &a,
+                              const ScannedNetwork &b) {
+                             return a.ssid == b.ssid;
+                           }),
+               sorted.end());
+
+  cachedNetworks = sorted;
+  wifiLastScanCompletedMs = millis();
+  wifiScanInProgress = false;
+  WiFi.scanDelete();
+}
+
+static void requestWifiScan(bool forceRescan) {
+  updateWifiScanState();
+
+  bool hasFreshCache =
+      wifiLastScanCompletedMs > 0 &&
+      (millis() - wifiLastScanCompletedMs) < WIFI_SCAN_STALE_MS;
+
+  if (wifiScanInProgress)
+    return;
+  if (!forceRescan && hasFreshCache)
+    return;
+
+  if (WiFi.scanNetworks(/*async=*/true, /*show_hidden=*/true) >= 0) {
+    wifiScanInProgress = true;
+    wifiScanStartedMs = millis();
+  }
+}
 
 // ─── Captive portal handler
 // ───────────────────────────────────────────────────
@@ -139,8 +239,17 @@ void writeStatus(JsonDocument &doc, const char *reason) {
   doc["ap_ip"] = WiFi.softAPIP().toString();
   doc["sta_ssid"] = staSsid;
   doc["sta_connected"] = (WiFi.status() == WL_CONNECTED);
+  doc["sta_has_saved_credentials"] = staSsid.length() > 0;
+  doc["sta_connecting"] = wifiConnectStartMs > 0;
+  doc["wifi_last_attempt_ms"] = wifiLastAttemptMs;
+  doc["wifi_last_connected_ms"] = wifiLastConnectedMs;
+  doc["wifi_last_error"] = wifiLastError;
+  doc["wifi_last_disconnect_reason"] = wifiLastDisconnectReason;
   doc["sta_ip"] = WiFi.localIP().toString();
   doc["rssi"] = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : 0;
+  doc["wifi_scan_in_progress"] = wifiScanInProgress;
+  doc["wifi_scan_last_ms"] = wifiLastScanCompletedMs;
+  doc["wifi_scan_result_count"] = cachedNetworks.size();
   doc["uptime_seconds"] = millis() / 1000;
   doc["free_heap"] = ESP.getFreeHeap();
 
@@ -362,14 +471,19 @@ static void postWeightToServer() {
 // Set flags here; do not call broadcastStatus() (which invokes async server
 // callbacks) directly from this callback because it may fire from a different
 // FreeRTOS task than the one running loop().
-static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t /*info*/) {
+static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
   switch (event) {
   case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     wifiConnectStartMs = 0;
+    wifiLastError = "connected";
+    wifiLastDisconnectReason = 0;
+    wifiLastConnectedMs = millis();
     wifiGotIp = true;
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     wifiConnectStartMs = 0;
+    wifiLastDisconnectReason = info.wifi_sta_disconnected.reason;
+    wifiLastError = wifiDisconnectReasonText(wifiLastDisconnectReason);
     wifiDisconnected = true;
     break;
   default:
@@ -392,50 +506,23 @@ static void setupRoutes() {
 
   // GET /api/wifi/scan – triggers or retrieves a scan
   server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest *request) {
-    int n = WiFi.scanComplete();
-    if (n == WIFI_SCAN_FAILED || n == -2) {
-      WiFi.scanNetworks(/*async=*/true, /*show_hidden=*/true);
+    bool forceRescan = request->hasParam("refresh") &&
+                       request->getParam("refresh")->value() == "1";
+
+    requestWifiScan(forceRescan);
+    updateWifiScanState();
+
+    if (wifiScanInProgress && cachedNetworks.empty()) {
       request->send(202, "application/json", "{\"status\":\"scanning\"}");
       return;
     }
-    if (n == WIFI_SCAN_RUNNING) {
-      request->send(202, "application/json", "{\"status\":\"scanning\"}");
-      return;
-    }
-
-    struct ScannedNetwork {
-      String ssid;
-      int32_t rssi;
-      bool open;
-    };
-    std::vector<ScannedNetwork> sorted;
-    sorted.reserve(n);
-
-    for (int i = 0; i < n; ++i) {
-      String ssid = WiFi.SSID(i);
-      if (ssid.length() == 0)
-        continue;
-      sorted.push_back(
-          {ssid, WiFi.RSSI(i), WiFi.encryptionType(i) == WIFI_AUTH_OPEN});
-    }
-    WiFi.scanDelete(); // free the scan memory immediately
-
-    std::sort(sorted.begin(), sorted.end(),
-              [](const ScannedNetwork &a, const ScannedNetwork &b) {
-                return a.rssi > b.rssi; // strongest first
-              });
-
-    // Deduplicate by SSID (keep strongest)
-    sorted.erase(
-        std::unique(sorted.begin(), sorted.end(),
-                    [](const ScannedNetwork &a, const ScannedNetwork &b) {
-                      return a.ssid == b.ssid;
-                    }),
-        sorted.end());
 
     JsonDocument doc;
+    doc["status"] = wifiScanInProgress ? "scanning" : "ready";
+    doc["cached"] = wifiScanInProgress;
+    doc["last_scan_ms"] = wifiLastScanCompletedMs;
     JsonArray networks = doc["networks"].to<JsonArray>();
-    for (const auto &e : sorted) {
+    for (const auto &e : cachedNetworks) {
       JsonObject net = networks.add<JsonObject>();
       net["ssid"] = e.ssid;
       net["rssi"] = e.rssi;
@@ -478,6 +565,8 @@ static void setupRoutes() {
         staSsid = ssid;
         staPassword = doc["password"] | "";
         saveConfig();
+        wifiLastError = "connecting";
+        wifiLastDisconnectReason = 0;
         shouldConnectWifi = true;
 
         request->send(200, "application/json", "{\"status\":\"connecting\"}");
@@ -489,6 +578,8 @@ static void setupRoutes() {
         WiFi.disconnect(/*wifioff=*/false);
         staSsid = "";
         staPassword = "";
+        wifiLastError = "credentials-cleared";
+        wifiLastDisconnectReason = 0;
         saveConfig();
         broadcastStatus("wifi-forgotten");
         request->send(200, "application/json", "{\"status\":\"forgotten\"}");
@@ -657,6 +748,9 @@ void loop() {
     shouldConnectWifi = false;
     WiFi.disconnect(/*wifioff=*/false);
     delay(50);
+    wifiLastAttemptMs = millis();
+    wifiLastError = "connecting";
+    wifiLastDisconnectReason = 0;
     WiFi.begin(staSsid.c_str(), staPassword.c_str());
     wifiConnectStartMs = millis();
     Serial.printf("[WiFi] Connecting to '%s'…\n", staSsid.c_str());
@@ -669,6 +763,7 @@ void loop() {
 
     WiFi.disconnect(/*wifioff=*/false);
     wifiConnectStartMs = 0;
+    wifiLastError = "timeout";
     Serial.println("[WiFi] Connect timeout");
     broadcastStatus("wifi-timeout");
   }
@@ -683,12 +778,15 @@ void loop() {
   }
 
   // 6. Read scale UART (non-blocking, line-buffered)
+  updateWifiScanState();
+
+  // 7. Read scale UART (non-blocking, line-buffered)
   readWeightFromScale();
 
-  // 7. Upload weight to server (throttled by uploadIntervalMs)
+  // 8. Upload weight to server (throttled by uploadIntervalMs)
   postWeightToServer();
 
-  // 8. Heartbeat SSE broadcast every second
+  // 9. Heartbeat SSE broadcast every second
   if (millis() - lastStatusBroadcastMs >= 1000) {
     lastStatusBroadcastMs = millis();
     broadcastStatus("heartbeat");
