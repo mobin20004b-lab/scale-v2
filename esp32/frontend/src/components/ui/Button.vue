@@ -5,6 +5,7 @@
     :disabled="disabled || loading"
     type="button"
   >
+    <div v-if="loading" class="spinner"></div>
     <slot>{{ label }}</slot>
   </button>
 </template>
