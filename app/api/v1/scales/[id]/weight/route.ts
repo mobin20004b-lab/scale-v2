@@ -14,21 +14,50 @@ export async function POST(
 
     const apiKey = authHeader.split(' ')[1];
 
-    // In a real app, you'd verify the API key matches the scale ID in the database
-    // For this demo, we'll just accept it if it's provided
+    // Verify the scale ID and API key
+    const scale = await prisma.scale.findUnique({
+      where: { id }
+    });
 
-    const body = await request.json();
-    const { weight, unit, uptime } = body;
-
-    if (typeof weight !== 'number') {
-      return NextResponse.json({ error: 'Invalid weight' }, { status: 400 });
+    if (!scale || scale.apiKey !== apiKey) {
+      return NextResponse.json({ error: 'Invalid API Key or Scale ID' }, { status: 401 });
     }
 
-    // Here you would typically update the scale's current weight in the database
-    // and potentially log the weight history.
-    // Since we are using Zustand for the frontend state in this demo, 
-    // real-time updates would require WebSockets or polling.
-    // For now, we just acknowledge the receipt.
+    let weightInGrams: number;
+    let uptime: number | undefined;
+
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      weightInGrams = Number(body.weight);
+      uptime = body.uptime;
+    } else {
+      // Assume raw text containing just a number (grams)
+      const text = await request.text();
+      weightInGrams = Number(text.trim());
+    }
+
+    if (isNaN(weightInGrams)) {
+      return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 });
+    }
+
+    // Convert grams to the scale's configured unit (assuming mostly kg)
+    let currentWeight = weightInGrams;
+    if (scale.unit === 'kg') {
+      currentWeight = weightInGrams / 1000;
+    }
+
+    await prisma.scale.update({
+      where: { id },
+      data: {
+        currentWeight,
+        status: 'ONLINE',
+        signal: 'FRESH',
+        lastSeen: new Date(),
+        ...(uptime !== undefined && { uptimeSec: uptime })
+      }
+    });
 
     return NextResponse.json({ success: true, message: 'Weight updated successfully' });
   } catch (error) {
