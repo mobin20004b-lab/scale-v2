@@ -33,6 +33,7 @@
             {{ status.sta_connected ? status.sta_ip : 'No IP' }}
             {{ status.sta_connected ? `· ${status.rssi} dBm` : '' }}
           </div>
+          <div class="stat-sub">{{ wifiStatusText }}</div>
         </Card>
 
         <Card title="Last Upload">
@@ -48,7 +49,7 @@
         <!-- Wi-Fi setup -->
         <Card title="Wi-Fi Setup">
           <div class="btn-row btn-row--split">
-            <Button :loading="scanning" @click="startScan">Scan Networks</Button>
+            <Button :loading="scanning" @click="startScan">{{ scanButtonLabel }}</Button>
             <Button
               variant="destructive"
               :disabled="!status.sta_connected || forgetting"
@@ -236,6 +237,24 @@ const uniqueNetworks = computed(() => {
   return [...bestBySsid.values()].sort((a, b) => Number(b.rssi ?? -999) - Number(a.rssi ?? -999))
 })
 
+const wifiStatusText = computed(() => {
+  if (status.value.sta_connected) return 'Connected'
+  if (status.value.sta_connecting) return 'Connecting…'
+  if (status.value.wifi_last_error === 'ap-not-found') return 'Network not found'
+  if (status.value.wifi_last_error === 'auth-failed') return 'Wrong password or rejected by AP'
+  if (status.value.wifi_last_error === 'timeout') return 'Connection timed out'
+  if (status.value.wifi_last_error === 'credentials-cleared') return 'Credentials removed'
+  if (status.value.sta_has_saved_credentials) return `Saved network: ${status.value.sta_ssid}`
+  return 'No Wi-Fi configured'
+})
+
+const scanButtonLabel = computed(() => {
+  if (scanning.value) return 'Scanning…'
+  const count = Number(status.value.wifi_scan_result_count ?? 0)
+  if (count > 0) return `Rescan (${count} found)`
+  return 'Scan Networks'
+})
+
 // ── Status polling ────────────────────────────────────────────────────────────
 const fetchStatus = async () => {
   try {
@@ -262,11 +281,16 @@ const pollScan = async () => {
       scanPollTimer = setTimeout(pollScan, 1200)
       return
     }
-    scanning.value = false
     if (res.ok) {
       const data = await res.json()
       networks.value = data.networks ?? []
+      if (data.status === 'scanning') {
+        scanPollTimer = setTimeout(pollScan, 1200)
+      } else {
+        scanning.value = false
+      }
     } else {
+      scanning.value = false
       showToast('Scan failed.', true)
     }
   } catch {
@@ -281,6 +305,7 @@ const startScan = () => {
   networks.value  = []
   selectedSsid.value = ''
   wifiPassword.value = ''
+  fetch('/api/wifi/scan?refresh=1').catch(() => {})
   pollScan()
 }
 
