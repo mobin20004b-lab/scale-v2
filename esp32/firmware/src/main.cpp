@@ -63,6 +63,7 @@ static unsigned long lastReconnectAttemptMs = 0;
 static unsigned long lastStatusBroadcastMs = 0;
 static unsigned long wifiLastAttemptMs = 0;
 static unsigned long wifiLastConnectedMs = 0;
+static unsigned long wifiNextReconnectAtMs = 0;
 static String wifiLastError = "idle";
 static int32_t wifiLastDisconnectReason = 0;
 
@@ -106,6 +107,35 @@ const char *const WIFI_SCAN_CACHE_PATH = "/wifi_scan_cache.json";
 
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 15000;
 const uint32_t WIFI_RECONNECT_INTERVAL_MS = 15000;
+const uint32_t WIFI_RECONNECT_MAX_INTERVAL_MS = 60000;
+
+static uint32_t wifiReconnectIntervalMs = WIFI_RECONNECT_INTERVAL_MS;
+
+static void dedupeAndSortNetworks(std::vector<ScannedNetwork> &networks) {
+  std::sort(networks.begin(), networks.end(),
+            [](const ScannedNetwork &a, const ScannedNetwork &b) {
+              return a.rssi > b.rssi;
+            });
+  networks.erase(std::unique(networks.begin(), networks.end(),
+                             [](const ScannedNetwork &a,
+                                const ScannedNetwork &b) {
+                               return a.ssid == b.ssid;
+                             }),
+                 networks.end());
+}
+
+static void markWifiConnectFailure(const char *error) {
+  wifiConnectStartMs = 0;
+  wifiLastError = error;
+  wifiReconnectIntervalMs =
+      std::min(wifiReconnectIntervalMs * 2, WIFI_RECONNECT_MAX_INTERVAL_MS);
+  wifiNextReconnectAtMs = millis() + wifiReconnectIntervalMs;
+}
+
+static void markWifiConnectSuccess() {
+  wifiReconnectIntervalMs = WIFI_RECONNECT_INTERVAL_MS;
+  wifiNextReconnectAtMs = 0;
+}
 
 static const char *wifiDisconnectReasonText(int32_t reason) {
   switch (reason) {
@@ -188,16 +218,7 @@ static void loadCachedNetworksFromFile() {
     cachedNetworks.push_back({ssid, rssi, open});
   }
 
-  std::sort(cachedNetworks.begin(), cachedNetworks.end(),
-            [](const ScannedNetwork &a, const ScannedNetwork &b) {
-              return a.rssi > b.rssi;
-            });
-  cachedNetworks.erase(std::unique(cachedNetworks.begin(), cachedNetworks.end(),
-                                   [](const ScannedNetwork &a,
-                                      const ScannedNetwork &b) {
-                                     return a.ssid == b.ssid;
-                                   }),
-                       cachedNetworks.end());
+  dedupeAndSortNetworks(cachedNetworks);
 
   wifiLastScanCompletedMs = doc["last_scan_ms"] | 0;
   if (cachedNetworks.empty()) {
@@ -219,7 +240,9 @@ static void updateWifiScanState() {
   if (n < 0) {
     if (millis() - wifiScanStartedMs > WIFI_SCAN_TIMEOUT_MS) {
       wifiScanInProgress = false;
+      wifiLastError = "scan-timeout";
       WiFi.scanDelete();
+      Serial.println("[WiFi] Scan timeout");
     }
     return;
   }
@@ -234,22 +257,26 @@ static void updateWifiScanState() {
                       WiFi.encryptionType(i) == WIFI_AUTH_OPEN});
   }
 
-  std::sort(sorted.begin(), sorted.end(),
-            [](const ScannedNetwork &a, const ScannedNetwork &b) {
-              return a.rssi > b.rssi;
-            });
-  sorted.erase(std::unique(sorted.begin(), sorted.end(),
-                           [](const ScannedNetwork &a,
-                              const ScannedNetwork &b) {
-                             return a.ssid == b.ssid;
-                           }),
-               sorted.end());
+  dedupeAndSortNetworks(sorted);
 
   cachedNetworks = sorted;
   wifiLastScanCompletedMs = millis();
   saveCachedNetworksToFile();
   wifiScanInProgress = false;
   WiFi.scanDelete();
+}
+
+static bool startWifiScan() {
+  int result = WiFi.scanNetworks(/*async=*/true, /*show_hidden=*/true);
+  if (result < 0) {
+    wifiLastError = "scan-start-failed";
+    Serial.printf("[WiFi] Failed to start scan: %d\n", result);
+    return false;
+  }
+
+  wifiScanInProgress = true;
+  wifiScanStartedMs = millis();
+  return true;
 }
 
 static void requestWifiScan(bool forceRescan) {
@@ -264,10 +291,22 @@ static void requestWifiScan(bool forceRescan) {
   if (!forceRescan && hasFreshCache)
     return;
 
-  if (WiFi.scanNetworks(/*async=*/true, /*show_hidden=*/true) >= 0) {
-    wifiScanInProgress = true;
-    wifiScanStartedMs = millis();
-  }
+  startWifiScan();
+}
+
+static void requestWifiConnect(const char *reason) {
+  if (staSsid.length() == 0)
+    return;
+
+  shouldConnectWifi = false;
+  wifiLastAttemptMs = millis();
+  wifiLastError = "connecting";
+  wifiLastDisconnectReason = 0;
+  WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/false);
+  WiFi.begin(staSsid.c_str(), staPassword.c_str());
+  wifiConnectStartMs = millis();
+  Serial.printf("[WiFi] Connecting to '%s' (%s)…\n", staSsid.c_str(), reason);
+  broadcastStatus(reason);
 }
 
 // ─── Captive portal handler
@@ -557,15 +596,16 @@ static void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
   switch (event) {
   case ARDUINO_EVENT_WIFI_STA_GOT_IP:
     wifiConnectStartMs = 0;
+    markWifiConnectSuccess();
     wifiLastError = "connected";
     wifiLastDisconnectReason = 0;
     wifiLastConnectedMs = millis();
     wifiGotIp = true;
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-    wifiConnectStartMs = 0;
+    markWifiConnectFailure(wifiDisconnectReasonText(
+        info.wifi_sta_disconnected.reason));
     wifiLastDisconnectReason = info.wifi_sta_disconnected.reason;
-    wifiLastError = wifiDisconnectReasonText(wifiLastDisconnectReason);
     wifiDisconnected = true;
     break;
   default:
@@ -649,6 +689,8 @@ static void setupRoutes() {
         saveConfig();
         wifiLastError = "connecting";
         wifiLastDisconnectReason = 0;
+        wifiReconnectIntervalMs = WIFI_RECONNECT_INTERVAL_MS;
+        wifiNextReconnectAtMs = 0;
         shouldConnectWifi = true;
 
         request->send(200, "application/json", "{\"status\":\"connecting\"}");
@@ -828,16 +870,7 @@ void loop() {
   // 3. Initiate WiFi STA connection (requested from a route handler or
   // auto-reconnect)
   if (shouldConnectWifi) {
-    shouldConnectWifi = false;
-    WiFi.disconnect(/*wifioff=*/false);
-    delay(50);
-    wifiLastAttemptMs = millis();
-    wifiLastError = "connecting";
-    wifiLastDisconnectReason = 0;
-    WiFi.begin(staSsid.c_str(), staPassword.c_str());
-    wifiConnectStartMs = millis();
-    Serial.printf("[WiFi] Connecting to '%s'…\n", staSsid.c_str());
-    broadcastStatus("wifi-connect-requested");
+    requestWifiConnect("wifi-connect-requested");
   }
 
   // 4. WiFi connect timeout
@@ -845,16 +878,16 @@ void loop() {
       millis() - wifiConnectStartMs > WIFI_CONNECT_TIMEOUT_MS) {
 
     WiFi.disconnect(/*wifioff=*/false);
-    wifiConnectStartMs = 0;
-    wifiLastError = "timeout";
+    markWifiConnectFailure("timeout");
     Serial.println("[WiFi] Connect timeout");
     broadcastStatus("wifi-timeout");
   }
 
   // 5. Periodic auto-reconnect (only when not already trying)
   if (WiFi.status() != WL_CONNECTED && staSsid.length() > 0 &&
-      wifiConnectStartMs == 0 &&
-      millis() - lastReconnectAttemptMs > WIFI_RECONNECT_INTERVAL_MS) {
+      wifiConnectStartMs == 0 && wifiNextReconnectAtMs > 0 &&
+      millis() >= wifiNextReconnectAtMs &&
+      millis() - lastReconnectAttemptMs > 1000) {
 
     lastReconnectAttemptMs = millis();
     shouldConnectWifi = true;
