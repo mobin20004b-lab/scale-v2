@@ -29,8 +29,8 @@ const char *const AP_SSID = "ESP32-S3-Setup";
 // Upload endpoint – change these if needed
 const char *const WEIGHT_POST_URL = "https://scale.hadersanat.com/api/v1/"
                                     "scales/cmm31px750004uzvlr467j1m4/weight";
-const char *const WEIGHT_POST_AUTH =
-    "Bearer a854aecf-da96-4f02-801d-77212c5e71cf";
+const char *const DEFAULT_WEIGHT_POST_TOKEN =
+    "a854aecf-da96-4f02-801d-77212c5e71cf";
 
 // UART2: RX=16, TX unused (-1)
 #define SCALE_RX_PIN 16
@@ -41,6 +41,19 @@ const char *const WEIGHT_POST_AUTH =
 static String staSsid;
 static String staPassword;
 static uint32_t uploadIntervalMs = 5000;
+static String uploadAuthToken;
+
+static String normalizeAuthToken(const String &value) {
+  String normalized = value;
+  normalized.trim();
+
+  if (normalized.startsWith("Bearer ")) {
+    normalized = normalized.substring(7);
+    normalized.trim();
+  }
+
+  return normalized;
+}
 
 // ─── Runtime state
 // ────────────────────────────────────────────────────────────
@@ -95,10 +108,17 @@ static void loadConfig() {
   staSsid = preferences.getString("ssid", "");
   staPassword = preferences.getString("password", "");
   uploadIntervalMs = preferences.getUInt("upl_ms", 5000);
+  uploadAuthToken =
+      preferences.getString("upl_tok", DEFAULT_WEIGHT_POST_TOKEN);
   preferences.end();
 
   if (uploadIntervalMs < 1000 || uploadIntervalMs > 600000) {
     uploadIntervalMs = 5000;
+  }
+
+  uploadAuthToken = normalizeAuthToken(uploadAuthToken);
+  if (uploadAuthToken.length() == 0) {
+    uploadAuthToken = DEFAULT_WEIGHT_POST_TOKEN;
   }
 }
 
@@ -107,6 +127,7 @@ static void saveConfig() {
   preferences.putString("ssid", staSsid);
   preferences.putString("password", staPassword);
   preferences.putUInt("upl_ms", uploadIntervalMs);
+  preferences.putString("upl_tok", uploadAuthToken);
   preferences.end();
 }
 
@@ -130,6 +151,8 @@ void writeStatus(JsonDocument &doc, const char *reason) {
   doc["weight_last_read_ms"] = lastWeightReadMs;
 
   doc["upload_interval_ms"] = uploadIntervalMs;
+  doc["upload_auth_token"] = uploadAuthToken;
+  doc["upload_auth_token_configured"] = uploadAuthToken.length() > 0;
   doc["weight_last_upload_ms"] = lastUploadMs;
   doc["weight_last_upload_code"] = lastUploadCode;
   doc["weight_last_upload_response"] = lastUploadResponse;
@@ -307,7 +330,8 @@ static void postWeightToServer() {
     return;
   }
 
-  http.addHeader("Authorization", WEIGHT_POST_AUTH);
+  String authHeader = "Bearer " + uploadAuthToken;
+  http.addHeader("Authorization", authHeader);
   http.addHeader("Content-Type", "text/plain");
   http.setTimeout(8000); // 8 s timeout – don't hang the loop for too long
 
@@ -474,12 +498,14 @@ static void setupRoutes() {
   server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     doc["upload_interval_ms"] = uploadIntervalMs;
+    doc["upload_auth_token"] = uploadAuthToken;
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
   });
 
-  // POST /api/settings  { "upload_interval_ms": 5000 }
+  // POST /api/settings  { "upload_interval_ms": 5000, "upload_auth_token":
+  // "..." }
   server.on(
       "/api/settings", HTTP_POST, [](AsyncWebServerRequest * /*request*/) {},
       nullptr,
@@ -499,6 +525,13 @@ static void setupRoutes() {
           return;
         }
 
+        if (!doc["upload_auth_token"].is<const char *>()) {
+          request->send(
+              400, "application/json",
+              "{\"error\":\"upload_auth_token must be a non-empty string\"}");
+          return;
+        }
+
         uint32_t requested = doc["upload_interval_ms"].as<uint32_t>();
         if (requested < 1000 || requested > 600000) {
           request->send(
@@ -507,7 +540,16 @@ static void setupRoutes() {
           return;
         }
 
+        String requestedToken = normalizeAuthToken(doc["upload_auth_token"].as<String>());
+        if (requestedToken.length() == 0 || requestedToken.length() > 255) {
+          request->send(400, "application/json",
+                        "{\"error\":\"upload_auth_token length must be "
+                        "1..255\"}");
+          return;
+        }
+
         uploadIntervalMs = requested;
+        uploadAuthToken = requestedToken;
         saveConfig();
         broadcastStatus("settings-updated");
         request->send(200, "application/json", "{\"status\":\"saved\"}");
