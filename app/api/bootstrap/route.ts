@@ -3,7 +3,15 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+
+function isPrismaDuplicateError(error: unknown): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+  );
+}
 
 const SETTINGS_FILE_PATH = path.join(process.cwd(), 'data', 'system-settings.json');
 
@@ -84,7 +92,7 @@ export async function POST(request: Request) {
       });
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (isPrismaDuplicateError(error) && error.code === 'P2002') {
       return NextResponse.json({ error: 'Duplicate user information.' }, { status: 409 });
     }
 
