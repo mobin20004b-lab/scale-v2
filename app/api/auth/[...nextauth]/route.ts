@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any, // Cast as any if there's an adapter type mismatch
+  adapter: PrismaAdapter(prisma as any) as any, // Cast as any if there's an adapter type mismatch
   providers: [
     CredentialsProvider({
       name: 'ورود با نام کاربری',
