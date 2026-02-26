@@ -11,6 +11,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <algorithm>
 #include <vector>
+#include <ctype.h>
 
 DNSServer dnsServer;
 AsyncWebServer server(80);
@@ -19,6 +20,11 @@ Preferences preferences;
 
 const byte DNS_PORT = 53;
 const char* AP_SSID = "ESP32-S3-Setup";
+const char* WEIGHT_POST_URL = "https://scale.hadersanat.com/api/v1/scales/cmm31px750004uzvlr467j1m4/weight";
+const char* WEIGHT_POST_AUTH = "Bearer a854aecf-da96-4f02-801d-77212c5e71cf";
+
+#define SCALE_RX_PIN 16
+#define SCALE_BAUDRATE 9600
 
 String sta_ssid = "";
 String sta_password = "";
@@ -38,6 +44,13 @@ unsigned long lastReconnectAttempt = 0;
 unsigned long lastStatusBroadcast = 0;
 uint32_t connectionAttempts = 0;
 String lastDisconnectReason = "none";
+String latestWeightRaw = "No Data";
+float latestWeightValue = NAN;
+bool hasWeightValue = false;
+unsigned long lastWeightReadMs = 0;
+unsigned long lastWeightPostMs = 0;
+int lastWeightPostCode = 0;
+String lastWeightPostResult = "never";
 
 #ifndef RGB_LED_PIN
 #define RGB_LED_PIN 48
@@ -196,6 +209,13 @@ void broadcastStatus(const char* reason = "update") {
     doc["free_heap_bytes"] = ESP.getFreeHeap();
     doc["wifi_channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
     doc["led_state"] = ledStateToString(ledState);
+    doc["weight_raw"] = latestWeightRaw;
+    doc["weight_value"] = hasWeightValue ? latestWeightValue : 0;
+    doc["weight_available"] = hasWeightValue;
+    doc["weight_last_read_ms"] = lastWeightReadMs;
+    doc["weight_last_post_ms"] = lastWeightPostMs;
+    doc["weight_last_post_code"] = lastWeightPostCode;
+    doc["weight_last_post_result"] = lastWeightPostResult;
 
     String response;
     serializeJson(doc, response);
@@ -241,6 +261,13 @@ void setupRoutes() {
         doc["free_heap_bytes"] = ESP.getFreeHeap();
         doc["wifi_channel"] = WiFi.status() == WL_CONNECTED ? WiFi.channel() : 0;
         doc["led_state"] = ledStateToString(ledState);
+        doc["weight_raw"] = latestWeightRaw;
+        doc["weight_value"] = hasWeightValue ? latestWeightValue : 0;
+        doc["weight_available"] = hasWeightValue;
+        doc["weight_last_read_ms"] = lastWeightReadMs;
+        doc["weight_last_post_ms"] = lastWeightPostMs;
+        doc["weight_last_post_code"] = lastWeightPostCode;
+        doc["weight_last_post_result"] = lastWeightPostResult;
 
         String response;
         serializeJson(doc, response);
@@ -437,6 +464,90 @@ void setupRoutes() {
     });
 }
 
+bool tryParseWeight(const String& input, float& parsedWeight) {
+    String normalized = "";
+    normalized.reserve(input.length());
+    bool seenDot = false;
+
+    for (size_t i = 0; i < input.length(); ++i) {
+        char c = input[i];
+        if (isdigit((unsigned char)c)) {
+            normalized += c;
+            continue;
+        }
+        if (c == '-' && normalized.length() == 0) {
+            normalized += c;
+            continue;
+        }
+        if ((c == '.' || c == ',') && !seenDot) {
+            normalized += '.';
+            seenDot = true;
+        }
+    }
+
+    if (normalized.length() == 0 || normalized == "-" || normalized == "." || normalized == "-.") {
+        return false;
+    }
+
+    char* endPtr = nullptr;
+    parsedWeight = strtof(normalized.c_str(), &endPtr);
+    return endPtr != normalized.c_str() && *endPtr == '\0' && !isnan(parsedWeight);
+}
+
+void readWeightFromScale() {
+    if (!Serial2.available()) {
+        return;
+    }
+
+    String frame = "";
+    while (Serial2.available()) {
+        char c = Serial2.read();
+        if (c != '\n' && c != '\r') {
+            frame += c;
+        }
+        delay(1);
+    }
+
+    frame.trim();
+    if (frame.length() == 0) {
+        return;
+    }
+
+    latestWeightRaw = frame;
+    lastWeightReadMs = millis();
+
+    float parsedWeight = NAN;
+    if (tryParseWeight(frame, parsedWeight)) {
+        latestWeightValue = parsedWeight;
+        hasWeightValue = true;
+    }
+}
+
+void postWeightToServer() {
+    if (!hasWeightValue || WiFi.status() != WL_CONNECTED) {
+        return;
+    }
+    if (millis() - lastWeightPostMs < 1000) {
+        return;
+    }
+
+    HTTPClient http;
+    http.begin(WEIGHT_POST_URL);
+    http.addHeader("Authorization", WEIGHT_POST_AUTH);
+    http.addHeader("Content-Type", "text/plain");
+
+    String payload = String(latestWeightValue, 3);
+    int httpCode = http.POST(payload);
+    if (httpCode > 0) {
+        lastWeightPostResult = "ok";
+    } else {
+        lastWeightPostResult = http.errorToString(httpCode);
+    }
+    lastWeightPostCode = httpCode;
+    lastWeightPostMs = millis();
+    http.end();
+}
+
 void onWifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
     switch (event) {
         case ARDUINO_EVENT_WIFI_STA_GOT_IP:
@@ -476,6 +587,7 @@ void setup() {
     rgbLed.show();
 
     WiFi.mode(WIFI_AP_STA);
+    Serial2.begin(SCALE_BAUDRATE, SERIAL_8N1, SCALE_RX_PIN, -1);
     WiFi.setHostname(wifi_hostname.c_str());
     applyWifiPowerSave();
     WiFi.onEvent(onWifiEvent);
@@ -509,6 +621,8 @@ void setup() {
 
 void loop() {
     dnsServer.processNextRequest();
+    readWeightFromScale();
+    postWeightToServer();
 
     if(shouldConnectWifi){
         shouldConnectWifi = false;
