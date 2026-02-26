@@ -4,6 +4,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/prisma';
 
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
 function isPrismaDuplicateError(error: unknown): error is { code: string } {
   return (
     typeof error === 'object' &&
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: TransactionClient) => {
       await tx.user.create({
         data: {
           name,
