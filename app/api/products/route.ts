@@ -11,7 +11,12 @@ export async function GET() {
   }
 
   const products = await prisma.product.findMany({
-    where: { isDeleted: false }
+    where: { isDeleted: false },
+    include: {
+      lots: {
+        orderBy: { createdAt: 'desc' }
+      }
+    }
   });
   return NextResponse.json(products);
 }
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   const data = await request.json();
-  
+
   try {
     const product = await prisma.product.create({
       data: {
@@ -36,7 +41,7 @@ export async function POST(request: Request) {
         nameFa: data.nameFa || data.name,
       }
     });
-    
+
     // Log activity
     await prisma.activityLog.create({
       data: {

@@ -1,7 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Package, Plus, Search, Edit, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Package, Plus, Search, Edit, Trash2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+
+interface Lot {
+  id: string;
+  lotNumber: string;
+  quantity: number;
+  barcode: string;
+  createdAt: string;
+}
 
 interface Product {
   id: string;
@@ -10,19 +18,21 @@ interface Product {
   barcode: string;
   category: string | null;
   unit: string;
+  lots?: Lot[];
 }
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
+  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('');
   const [unit, setUnit] = useState('kg');
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -66,7 +76,7 @@ export default function ProductsManagement() {
     try {
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +86,7 @@ export default function ProductsManagement() {
       if (res.ok) {
         setSuccess(editingProduct ? 'محصول با موفقیت ویرایش شد.' : 'محصول با موفقیت اضافه شد.');
         setTimeout(() => setSuccess(''), 3000);
-        
+
         setName('');
         setDescription('');
         setBarcode('');
@@ -84,7 +94,7 @@ export default function ProductsManagement() {
         setUnit('kg');
         setIsAdding(false);
         setEditingProduct(null);
-        
+
         fetchProducts();
       } else {
         setError('خطا در ذخیره محصول.');
@@ -98,7 +108,7 @@ export default function ProductsManagement() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('آیا از حذف این محصول اطمینان دارید؟')) return;
-    
+
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -135,7 +145,7 @@ export default function ProductsManagement() {
     setUnit('kg');
   };
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = products.filter(p =>
     p.name.includes(searchTerm) || p.barcode.includes(searchTerm) || (p.category && p.category.includes(searchTerm))
   );
 
@@ -175,7 +185,7 @@ export default function ProductsManagement() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">نام محصول</label>
-              <input 
+              <input
                 type="text"
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
                 value={name}
@@ -184,7 +194,7 @@ export default function ProductsManagement() {
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">بارکد</label>
-              <input 
+              <input
                 type="text"
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow text-left"
                 dir="ltr"
@@ -194,7 +204,7 @@ export default function ProductsManagement() {
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">دسته‌بندی</label>
-              <input 
+              <input
                 type="text"
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
                 value={category}
@@ -203,7 +213,7 @@ export default function ProductsManagement() {
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">واحد اندازه‌گیری</label>
-              <select 
+              <select
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
@@ -216,7 +226,7 @@ export default function ProductsManagement() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-muted-foreground mb-2">توضیحات</label>
-              <input 
+              <input
                 type="text"
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
                 value={description}
@@ -262,6 +272,7 @@ export default function ProductsManagement() {
                 <th className="px-6 py-4 text-sm font-medium text-muted-foreground">نام محصول</th>
                 <th className="px-6 py-4 text-sm font-medium text-muted-foreground">بارکد</th>
                 <th className="px-6 py-4 text-sm font-medium text-muted-foreground">دسته‌بندی</th>
+                <th className="px-6 py-4 text-sm font-medium text-muted-foreground text-center">موجودی کل</th>
                 <th className="px-6 py-4 text-sm font-medium text-muted-foreground">واحد</th>
                 <th className="px-6 py-4 text-sm font-medium text-muted-foreground text-left">عملیات</th>
               </tr>
@@ -275,52 +286,98 @@ export default function ProductsManagement() {
                 </tr>
               ) : (
                 filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-secondary/10 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                          <Package className="w-5 h-5" />
+                  <React.Fragment key={product.id}>
+                    <tr className="hover:bg-secondary/10 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setExpandedProduct(expandedProduct === product.id ? null : product.id)}
+                            className="p-1 text-muted-foreground hover:bg-secondary rounded-md transition-colors"
+                          >
+                            {expandedProduct === product.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <Package className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">{product.name}</div>
+                            {product.description && (
+                              <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                {product.description}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-foreground">{product.name}</div>
-                          {product.description && (
-                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {product.description}
-                            </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-sm bg-secondary/50 px-2 py-1 rounded-md" dir="ltr">
+                          {product.barcode}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {product.category || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-medium inline-block min-w-16 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm">
+                          {product.lots?.reduce((sum, lot) => sum + lot.quantity, 0) || 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {product.unit}
+                      </td>
+                      <td className="px-6 py-4 text-left">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => startEdit(product)}
+                            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            title="ویرایش"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                            title="حذف"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedProduct === product.id && (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-4 bg-secondary/5 border-b border-border">
+                          <div className="text-sm font-medium mb-3 mr-4 text-muted-foreground">لیست لات‌های موجود:</div>
+                          {(!product.lots || product.lots.filter(l => l.quantity > 0).length === 0) ? (
+                            <div className="text-sm text-muted-foreground mr-4">هیچ لات فعالی یافت نشد.</div>
+                          ) : (
+                            <table className="w-full text-right mb-2 bg-background rounded-xl overflow-hidden border border-border">
+                              <thead className="bg-secondary/20 text-muted-foreground text-xs">
+                                <tr>
+                                  <th className="px-4 py-2 font-medium">شماره لات</th>
+                                  <th className="px-4 py-2 font-medium">بارکد لات</th>
+                                  <th className="px-4 py-2 font-medium">موجودی</th>
+                                  <th className="px-4 py-2 font-medium text-left">تاریخ ایجاد</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border text-sm">
+                                {product.lots.filter(l => l.quantity > 0).map(lot => (
+                                  <tr key={lot.id} className="hover:bg-secondary/10">
+                                    <td className="px-4 py-2 font-mono">{lot.lotNumber}</td>
+                                    <td className="px-4 py-2 font-mono">{lot.barcode}</td>
+                                    <td className="px-4 py-2 font-medium text-primary">{lot.quantity} {product.unit}</td>
+                                    <td className="px-4 py-2 text-left text-muted-foreground" dir="ltr">
+                                      {new Date(lot.createdAt).toLocaleString('fa-IR')}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-sm bg-secondary/50 px-2 py-1 rounded-md" dir="ltr">
-                        {product.barcode}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {product.category || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {product.unit}
-                    </td>
-                    <td className="px-6 py-4 text-left">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => startEdit(product)}
-                          className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="ویرایش"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(product.id)}
-                          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                          title="حذف"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>
