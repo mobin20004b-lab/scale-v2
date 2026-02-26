@@ -102,6 +102,7 @@ static unsigned long wifiLastScanCompletedMs = 0;
 
 const uint32_t WIFI_SCAN_STALE_MS = 30000;
 const uint32_t WIFI_SCAN_TIMEOUT_MS = 10000;
+const char *const WIFI_SCAN_CACHE_PATH = "/wifi_scan_cache.json";
 
 const uint32_t WIFI_CONNECT_TIMEOUT_MS = 15000;
 const uint32_t WIFI_RECONNECT_INTERVAL_MS = 15000;
@@ -125,6 +126,86 @@ static const char *wifiDisconnectReasonText(int32_t reason) {
   default:
     return "disconnected";
   }
+}
+
+static void saveCachedNetworksToFile() {
+  JsonDocument doc;
+  doc["last_scan_ms"] = wifiLastScanCompletedMs;
+  JsonArray networks = doc["networks"].to<JsonArray>();
+
+  for (const auto &e : cachedNetworks) {
+    JsonObject net = networks.add<JsonObject>();
+    net["ssid"] = e.ssid;
+    net["rssi"] = e.rssi;
+    net["open"] = e.open;
+  }
+
+  File file = LittleFS.open(WIFI_SCAN_CACHE_PATH, FILE_WRITE);
+  if (!file) {
+    Serial.println("[WiFi] Failed to open scan cache file for writing");
+    return;
+  }
+
+  if (serializeJson(doc, file) == 0) {
+    Serial.println("[WiFi] Failed to write scan cache file");
+  }
+
+  file.close();
+}
+
+static void loadCachedNetworksFromFile() {
+  if (!LittleFS.exists(WIFI_SCAN_CACHE_PATH))
+    return;
+
+  File file = LittleFS.open(WIFI_SCAN_CACHE_PATH, FILE_READ);
+  if (!file) {
+    Serial.println("[WiFi] Failed to open scan cache file for reading");
+    return;
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, file);
+  file.close();
+
+  if (error) {
+    Serial.printf("[WiFi] Invalid scan cache file: %s\n", error.c_str());
+    LittleFS.remove(WIFI_SCAN_CACHE_PATH);
+    return;
+  }
+
+  cachedNetworks.clear();
+  JsonArray networks = doc["networks"].as<JsonArray>();
+  for (JsonVariant net : networks) {
+    if (!net["ssid"].is<const char *>())
+      continue;
+    String ssid = net["ssid"].as<String>();
+    ssid.trim();
+    if (ssid.length() == 0)
+      continue;
+
+    int32_t rssi = net["rssi"] | -100;
+    bool open = net["open"] | false;
+    cachedNetworks.push_back({ssid, rssi, open});
+  }
+
+  std::sort(cachedNetworks.begin(), cachedNetworks.end(),
+            [](const ScannedNetwork &a, const ScannedNetwork &b) {
+              return a.rssi > b.rssi;
+            });
+  cachedNetworks.erase(std::unique(cachedNetworks.begin(), cachedNetworks.end(),
+                                   [](const ScannedNetwork &a,
+                                      const ScannedNetwork &b) {
+                                     return a.ssid == b.ssid;
+                                   }),
+                       cachedNetworks.end());
+
+  wifiLastScanCompletedMs = doc["last_scan_ms"] | 0;
+  if (cachedNetworks.empty()) {
+    wifiLastScanCompletedMs = 0;
+  }
+
+  Serial.printf("[WiFi] Restored %u cached networks from LittleFS\n",
+                (unsigned)cachedNetworks.size());
 }
 
 static void updateWifiScanState() {
@@ -166,6 +247,7 @@ static void updateWifiScanState() {
 
   cachedNetworks = sorted;
   wifiLastScanCompletedMs = millis();
+  saveCachedNetworksToFile();
   wifiScanInProgress = false;
   WiFi.scanDelete();
 }
@@ -689,6 +771,7 @@ void setup() {
   }
 
   loadConfig();
+  loadCachedNetworksFromFile();
 
   // Initialise UART2 for the scale (RX only; TX pin set to -1)
   Serial2.begin(SCALE_BAUDRATE, SERIAL_8N1, SCALE_RX_PIN, -1);
