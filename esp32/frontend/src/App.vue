@@ -1,9 +1,10 @@
 <template>
   <div class="app">
-    <header class="topbar">
+    <header class="topbar animate-in" style="--delay: 0ms">
       <div class="topbar-left">
         <span class="logo">⚖ ESP32 Scale</span>
-        <Badge :variant="connected ? 'success' : 'danger'">
+        <Badge :variant="connected ? 'success' : 'danger'" class="status-badge">
+          <span class="status-dot" :class="{ 'status-dot--online': connected }"></span>
           {{ connected ? 'Online' : 'Offline' }}
         </Badge>
       </div>
@@ -11,21 +12,21 @@
     </header>
 
     <main class="content">
-      <section class="page-intro">
+      <section class="page-intro animate-in" style="--delay: 80ms">
         <h1 class="page-title">Device Console</h1>
-        <p class="page-subtitle">Material 3 tuned layout for scale status, connectivity, and upload settings.</p>
+        <p class="page-subtitle">Polished control surface with mobile-first spacing, smooth motion, and clean shadcn-style cards.</p>
       </section>
 
       <!-- ── Stats row ─────────────────────────────────────────────────────── -->
       <div class="stats">
-        <Card title="Weight">
+        <Card title="Weight" class="animate-in" style="--delay: 140ms">
           <div class="stat-val" :class="{ 'stat-val--stale': weightStale }">
             {{ formattedWeight }}
           </div>
           <div class="stat-sub">raw: {{ status.weight_raw || '—' }}</div>
         </Card>
 
-        <Card title="Wi-Fi">
+        <Card title="Wi-Fi" class="animate-in" style="--delay: 210ms">
           <div class="stat-val stat-val--md">
             {{ status.sta_connected ? status.sta_ssid : 'Disconnected' }}
           </div>
@@ -36,7 +37,7 @@
           <div class="stat-sub">{{ wifiStatusText }}</div>
         </Card>
 
-        <Card title="Last Upload">
+        <Card title="Last Upload" class="animate-in" style="--delay: 280ms">
           <div class="stat-val stat-val--md" :class="uploadCodeClass">
             {{ status.weight_last_upload_code ? `HTTP ${status.weight_last_upload_code}` : '—' }}
           </div>
@@ -47,7 +48,7 @@
       <!-- ── Panels ─────────────────────────────────────────────────────────── -->
       <div class="panels">
         <!-- Wi-Fi setup -->
-        <Card title="Wi-Fi Setup">
+        <Card title="Wi-Fi Setup" class="animate-in" style="--delay: 340ms">
           <div class="btn-row btn-row--split">
             <Button :loading="scanning" @click="startScan">{{ scanButtonLabel }}</Button>
             <Button
@@ -97,7 +98,7 @@
         </Card>
 
         <!-- Settings -->
-        <Card title="Settings">
+        <Card title="Settings" class="animate-in" style="--delay: 400ms">
           <div class="stack-md">
           <div class="field">
             <label>Upload interval
