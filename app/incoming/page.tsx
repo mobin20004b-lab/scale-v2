@@ -36,6 +36,24 @@ export default function IncomingGoods() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!scaleId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/scales');
+        if (res.ok) {
+          const sv = await res.json();
+          setScales(sv);
+        }
+      } catch (e) {
+        console.error('Failed to poll scales', e);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [scaleId]);
+
   const selectedScale = scales.find((s) => s.id === scaleId);
 
   const submit = async () => {
@@ -77,9 +95,16 @@ export default function IncomingGoods() {
           {scales.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
 
-        <input className="w-full border border-border rounded-xl p-2 bg-background" placeholder="وزن دستی (اختیاری)" value={weight} onChange={(e) => setWeight(e.target.value)} />
+        <input
+          className="w-full border border-border rounded-xl p-2 bg-background disabled:bg-secondary/50 disabled:text-muted-foreground"
+          placeholder="وزن دستی (اختیاری)"
+          value={scaleId ? (selectedScale?.currentWeight || '') : weight}
+          onChange={(e) => setWeight(e.target.value)}
+          readOnly={!!scaleId}
+          disabled={!!scaleId}
+        />
 
-        {selectedScale && <p className="text-sm text-muted-foreground">وزن لحظه‌ای: {selectedScale.currentWeight} | وضعیت سیگنال: {selectedScale.signal}</p>}
+        {selectedScale && <p className="text-sm text-muted-foreground">وضعیت سیگنال: {selectedScale.signal}</p>}
 
         <button onClick={submit} className="w-full bg-primary text-primary-foreground rounded-xl py-2">تایید ورود</button>
         {message && <p className="text-sm">{message}</p>}

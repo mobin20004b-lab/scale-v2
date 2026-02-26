@@ -77,10 +77,10 @@ export default function ScalesPage() {
             <p className="font-semibold">{scale.name}</p>
             <p className="text-sm text-muted-foreground">انبار: {scale.warehouse?.name ?? scale.warehouseId}</p>
             <p className="text-xs font-mono" dir="ltr">Token: {scale.apiKey}</p>
-            <pre className="text-xs bg-secondary/30 p-2 rounded-xl overflow-auto" dir="ltr">{`curl -X POST $BASE/api/external/stock-in \\
+            <pre className="text-xs bg-secondary/30 p-2 rounded-xl overflow-auto" dir="ltr">{`curl -X POST $BASE/api/v1/scales/${scale.id}/weight \\
   -H "Authorization: Bearer ${scale.apiKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"productId":"...","warehouseId":"${scale.warehouseId}","weight":12.5}'`}</pre>
+  -H "Content-Type: text/plain" \\
+  -d '1500'`}</pre>
             <button onClick={() => rotate(scale.id)} className="bg-secondary rounded-xl px-3 py-1 text-sm">تولید مجدد API Token</button>
           </div>
         ))}
