@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/generated/client/client';
 import { prisma } from '@/lib/prisma';
 
 type TransactionClient = Prisma.TransactionClient;

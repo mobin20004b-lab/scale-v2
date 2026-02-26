@@ -1,10 +1,11 @@
-import * as PrismaClientModule from '@prisma/client';
+import { PrismaClient } from '../generated/client/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const PrismaClient = (PrismaClientModule as { PrismaClient: new (options: { adapter: PrismaPg }) => any }).PrismaClient;
-
 const prismaClientSingleton = () => {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL!,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined
+  });
   return new PrismaClient({ adapter });
 };
 
