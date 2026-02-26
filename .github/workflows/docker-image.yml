@@ -3,10 +3,7 @@ name: Docker Image
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]
-  pull_request:
-    branches: ["main"]
-  workflow_dispatch:
+    tags: ["*"]
 
 env:
   REGISTRY: docker.io
@@ -14,6 +11,7 @@ env:
 
 jobs:
   docker:
+    if: contains(github.ref_name, 'build-docker') || contains(github.event.head_commit.message, 'build-docker')
     runs-on: ubuntu-latest
     permissions:
       contents: read
