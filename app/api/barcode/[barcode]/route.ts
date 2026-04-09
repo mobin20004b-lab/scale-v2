@@ -15,7 +15,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ barc
   let lotId = null;
 
   const lot = await prisma.lot.findFirst({
-    where: { barcode: barcode },
+    where: {
+      OR: [
+        { barcode },
+        { qrCode: barcode },
+      ],
+    },
     include: {
       product: {
         include: { lots: { where: { quantity: { gt: 0 } }, orderBy: { createdAt: 'asc' } } }
@@ -28,7 +33,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ barc
     lotId = lot.id;
   } else {
     product = await prisma.product.findFirst({
-      where: { barcode: barcode, isDeleted: false },
+      where: { barcode, isDeleted: false },
       include: { lots: { where: { quantity: { gt: 0 } }, orderBy: { createdAt: 'asc' } } }
     });
   }
@@ -37,7 +42,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ barc
     // Log unknown barcode
     await prisma.unknownBarcode.create({
       data: {
-        barcode: barcode,
+        barcode,
       }
     });
     return NextResponse.json({ error: 'Product not found', status: 'UNKNOWN_BARCODE_LOGGED' }, { status: 404 });
