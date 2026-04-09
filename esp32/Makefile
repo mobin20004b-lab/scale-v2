@@ -9,3 +9,8 @@ build:
 	@platformio run --environment esp32-s3-devkitc-1 --target uploadfs --project-dir firmware
 	@echo "Build completed!"
 
+serial-log:
+	@mkdir -p logs
+	@logfile="logs/serial-$$(date +%Y%m%d-%H%M%S).log"; \
+		echo "Streaming serial output to $$logfile"; \
+		platformio device monitor --project-dir firmware --environment esp32-s3-devkitc-1 | tee "$$logfile"

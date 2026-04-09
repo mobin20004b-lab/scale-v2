@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <header class="topbar animate-in" style="--delay: 0ms">
+    <header class="topbar">
       <div class="topbar-left">
         <span class="logo">⚖ ESP32 Scale</span>
         <Badge :variant="connected ? 'success' : 'danger'" class="status-badge">
@@ -12,21 +12,21 @@
     </header>
 
     <main class="content">
-      <section class="page-intro animate-in" style="--delay: 80ms">
+      <section class="page-intro">
         <h1 class="page-title">Device Console</h1>
-        <p class="page-subtitle">Polished control surface with mobile-first spacing, smooth motion, and clean shadcn-style cards.</p>
+        <p class="page-subtitle">Simple and minimal control interface.</p>
       </section>
 
       <!-- ── Stats row ─────────────────────────────────────────────────────── -->
       <div class="stats">
-        <Card title="Weight" class="animate-in" style="--delay: 140ms">
+        <Card title="Weight">
           <div class="stat-val" :class="{ 'stat-val--stale': weightStale }">
             {{ formattedWeight }}
           </div>
           <div class="stat-sub">raw: {{ status.weight_raw || '—' }}</div>
         </Card>
 
-        <Card title="Wi-Fi" class="animate-in" style="--delay: 210ms">
+        <Card title="Wi-Fi">
           <div class="stat-val stat-val--md">
             {{ status.sta_connected ? status.sta_ssid : 'Disconnected' }}
           </div>
@@ -37,7 +37,7 @@
           <div class="stat-sub">{{ wifiStatusText }}</div>
         </Card>
 
-        <Card title="Last Upload" class="animate-in" style="--delay: 280ms">
+        <Card title="Last Upload">
           <div class="stat-val stat-val--md" :class="uploadCodeClass">
             {{ status.weight_last_upload_code ? `HTTP ${status.weight_last_upload_code}` : '—' }}
           </div>
@@ -48,7 +48,7 @@
       <!-- ── Panels ─────────────────────────────────────────────────────────── -->
       <div class="panels">
         <!-- Wi-Fi setup -->
-        <Card title="Wi-Fi Setup" class="animate-in" style="--delay: 340ms">
+        <Card title="Wi-Fi Setup">
           <div class="btn-row btn-row--split">
             <Button :loading="scanning" @click="startScan">{{ scanButtonLabel }}</Button>
             <Button @click="manualSsid = true">Manual SSID</Button>
@@ -99,35 +99,35 @@
         </Card>
 
         <!-- Settings -->
-        <Card title="Settings" class="animate-in" style="--delay: 400ms">
+        <Card title="Settings">
           <div class="stack-md">
-          <div class="field">
-            <label>Upload interval
-              <span class="hint">1 000 – 600 000 ms</span>
-            </label>
-            <Input
-              v-model.number="uploadIntervalMs"
-              type="number"
-              min="1000"
-              max="600000"
-              step="1000"
-            />
-          </div>
-          <div class="field">
-            <label>Upload API token
-              <span class="hint">Bearer token without the "Bearer" prefix</span>
-            </label>
-            <Input
-              v-model="uploadAuthToken"
-              type="text"
-              autocomplete="off"
-              placeholder="a854aecf-da96-4f02-801d-77212c5e71cf"
-            />
-          </div>
+            <div class="field">
+              <label>Upload interval
+                <span class="hint">1 000 – 600 000 ms</span>
+              </label>
+              <Input
+                v-model.number="uploadIntervalMs"
+                type="number"
+                min="1000"
+                max="600000"
+                step="1000"
+              />
+            </div>
+            <div class="field">
+              <label>Upload API token
+                <span class="hint">Bearer token without the "Bearer" prefix</span>
+              </label>
+              <Input
+                v-model="uploadAuthToken"
+                type="text"
+                autocomplete="off"
+                placeholder="a854aecf-da96-4f02-801d-77212c5e71cf"
+              />
+            </div>
 
-          <Button variant="primary" :loading="savingSettings" @click="saveSettings">
-            Save Settings
-          </Button>
+            <Button variant="primary" :loading="savingSettings" @click="saveSettings">
+              Save Settings
+            </Button>
           </div>
 
           <div class="divider"></div>
@@ -145,13 +145,11 @@
     </main>
 
     <!-- Toast -->
-    <transition name="toast">
-      <div v-if="toast" class="toast">
-        <Alert :variant="toast.error ? 'destructive' : 'success'">
-          {{ toast.msg }}
-        </Alert>
-      </div>
-    </transition>
+    <div v-if="toast" class="toast">
+      <Alert :variant="toast.error ? 'destructive' : 'success'">
+        {{ toast.msg }}
+      </Alert>
+    </div>
   </div>
 </template>
 
