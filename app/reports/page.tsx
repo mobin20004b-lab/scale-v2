@@ -1,26 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FileText, Download, Filter, Calendar, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { useMemo, useState, useEffect } from 'react';
+import { Calendar, Search, ArrowDownToLine, ArrowUpFromLine, Package2, Warehouse } from 'lucide-react';
+
+type InventoryRow = {
+  id: string;
+  type: 'STOCK_IN' | 'STOCK_OUT' | 'STOCK_IN_UNDO' | 'STOCK_OUT_UNDO';
+  quantity: number;
+  weight: number | null;
+  createdAt: string;
+  product: { name: string };
+  warehouse: { name: string };
+};
+
+const PAGE_SIZE = 10;
+
+const typeLabel: Record<InventoryRow['type'], string> = {
+  STOCK_IN: 'ورود',
+  STOCK_OUT: 'خروج',
+  STOCK_IN_UNDO: 'لغو ورود',
+  STOCK_OUT_UNDO: 'لغو خروج',
+};
 
 export default function ReportsPage() {
-  const [reportType, setReportType] = useState('inventory');
   const [dateRange, setDateRange] = useState('7d');
-  const [data, setData] = useState<any[]>([]);
+  const [rows, setRows] = useState<InventoryRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeType, setActiveType] = useState<'ALL' | 'STOCK_IN' | 'STOCK_OUT'>('ALL');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const fetchReportData = async () => {
       setIsLoading(true);
       try {
-        // In a real app, you'd calculate start/end dates based on dateRange
-        // and pass them to the API. For this demo, we'll just fetch all or mock.
-        const res = await fetch(`/api/reports?type=${reportType}`);
+        const now = new Date();
+        const start = new Date(now);
+        if (dateRange === '7d') start.setDate(now.getDate() - 7);
+        if (dateRange === '30d') start.setDate(now.getDate() - 30);
+        if (dateRange === '90d') start.setDate(now.getDate() - 90);
+        if (dateRange === 'year') start.setMonth(0, 1);
+
+        const query = new URLSearchParams({
+          type: 'inventory',
+          startDate: start.toISOString(),
+          endDate: now.toISOString(),
+        });
+
+        const res = await fetch(`/api/reports?${query.toString()}`);
         if (res.ok) {
           const json = await res.json();
-          // Transform data for charts if needed
-          setData(json);
+          setRows(json);
+          setPage(1);
         }
       } catch (error) {
         console.error('Failed to fetch report data', error);
@@ -30,140 +61,180 @@ export default function ReportsPage() {
     };
 
     fetchReportData();
-  }, [reportType, dateRange]);
+  }, [dateRange]);
 
-  // Mock data for charts since we don't have real historical data yet
-  const chartData = [
-    { name: 'شنبه', in: 4000, out: 2400 },
-    { name: 'یکشنبه', in: 3000, out: 1398 },
-    { name: 'دوشنبه', in: 2000, out: 9800 },
-    { name: 'سه‌شنبه', in: 2780, out: 3908 },
-    { name: 'چهارشنبه', in: 1890, out: 4800 },
-    { name: 'پنج‌شنبه', in: 2390, out: 3800 },
-    { name: 'جمعه', in: 3490, out: 4300 },
-  ];
+  const filteredRows = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return rows.filter((row) => {
+      const isMatchingType = activeType === 'ALL' || row.type === activeType;
+      const isMatchingText =
+        !normalizedSearch ||
+        row.product.name.toLowerCase().includes(normalizedSearch) ||
+        row.warehouse.name.toLowerCase().includes(normalizedSearch) ||
+        typeLabel[row.type].toLowerCase().includes(normalizedSearch);
+
+      return isMatchingType && isMatchingText;
+    });
+  }, [rows, activeType, search]);
+
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredRows.slice(start, start + PAGE_SIZE);
+  }, [filteredRows, page]);
+
+  const totals = useMemo(() => {
+    return rows.reduce(
+      (acc, row) => {
+        const value = row.weight ?? row.quantity;
+        if (row.type === 'STOCK_IN') acc.incoming += value;
+        if (row.type === 'STOCK_OUT') acc.outgoing += value;
+        acc.transactions += 1;
+        return acc;
+      },
+      { incoming: 0, outgoing: 0, transactions: 0 },
+    );
+  }, [rows]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">گزارش‌ها و تحلیل‌ها</h1>
-          <p className="text-muted-foreground mt-1">مشاهده و استخراج داده‌های عملکرد انبار و ترازوها.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="bg-secondary text-secondary-foreground font-medium rounded-xl px-4 py-2 hover:bg-secondary/80 transition-colors flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            فیلتر پیشرفته
-          </button>
-          <button className="bg-primary text-primary-foreground font-medium rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            خروجی اکسل
-          </button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">گزارش ورود و خروج کالا</h1>
+        <p className="text-muted-foreground mt-1">نمایش ساده‌تر، قابل جستجو و قابل فیلتر برای مدیریت بهتر تردد کالا.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-card p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-muted-foreground">کل ورودی (هفته)</h3>
-            <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-foreground" dir="ltr">24,580 kg</div>
-            <div className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
-              <span>+۱۵٪</span>
-              <span className="text-muted-foreground">نسبت به هفته قبل</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-muted-foreground">کل خروجی (هفته)</h3>
-            <div className="p-2 bg-destructive/10 text-destructive rounded-xl">
-              <TrendingDown className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-foreground" dir="ltr">18,240 kg</div>
-            <div className="text-sm text-destructive mt-2 flex items-center gap-1">
-              <span>-۵٪</span>
-              <span className="text-muted-foreground">نسبت به هفته قبل</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-muted-foreground">تراکنش‌های موفق</h3>
-            <div className="p-2 bg-blue-500/10 text-blue-600 rounded-xl">
-              <BarChart3 className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-foreground" dir="ltr">1,284</div>
-            <div className="text-sm text-emerald-600 mt-2 flex items-center gap-1">
-              <span>۹۹.۸٪</span>
-              <span className="text-muted-foreground">نرخ موفقیت</span>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <SummaryCard title="کل ورود" value={`${totals.incoming.toFixed(2)} kg`} icon={<ArrowDownToLine className="w-5 h-5 text-emerald-600" />} />
+        <SummaryCard title="کل خروج" value={`${totals.outgoing.toFixed(2)} kg`} icon={<ArrowUpFromLine className="w-5 h-5 text-rose-600" />} />
+        <SummaryCard title="تعداد تراکنش" value={`${totals.transactions}`} icon={<Package2 className="w-5 h-5 text-primary" />} />
       </div>
 
       <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 bg-secondary/30 p-1 rounded-xl w-fit">
-            <button 
-              onClick={() => setReportType('inventory')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${reportType === 'inventory' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              گردش کالا
-            </button>
-            <button 
-              onClick={() => setReportType('low-stock')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${reportType === 'low-stock' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              کالاهای رو به اتمام
-            </button>
+        <div className="p-4 md:p-6 border-b border-border space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
+            <div className="flex items-center gap-2 bg-secondary/30 p-1 rounded-xl w-fit">
+              <FilterButton active={activeType === 'ALL'} onClick={() => { setActiveType('ALL'); setPage(1); }}>
+                همه
+              </FilterButton>
+              <FilterButton active={activeType === 'STOCK_IN'} onClick={() => { setActiveType('STOCK_IN'); setPage(1); }}>
+                ورودها
+              </FilterButton>
+              <FilterButton active={activeType === 'STOCK_OUT'} onClick={() => { setActiveType('STOCK_OUT'); setPage(1); }}>
+                خروجی‌ها
+              </FilterButton>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <select className="bg-transparent" value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+                <option value="7d">۷ روز گذشته</option>
+                <option value="30d">۳۰ روز گذشته</option>
+                <option value="90d">۳ ماه گذشته</option>
+                <option value="year">از ابتدای سال</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <select 
-              className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer"
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-            >
-              <option value="7d">۷ روز گذشته</option>
-              <option value="30d">۳۰ روز گذشته</option>
-              <option value="90d">۳ ماه گذشته</option>
-              <option value="year">امسال</option>
-            </select>
+          <div className="relative">
+            <Search className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2" />
+            <input
+              className="w-full border border-border rounded-xl p-2 pr-9 bg-background"
+              placeholder="جستجو بر اساس کالا، انبار یا نوع عملیات"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="h-[400px] w-full" dir="ltr">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280' }} dx={-10} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}
-                  cursor={{ fill: '#f3f4f6' }}
-                />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="in" name="ورودی (kg)" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={50} />
-                <Bar dataKey="out" name="خروجی (kg)" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={50} />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px] text-sm">
+            <thead className="bg-secondary/30 text-muted-foreground">
+              <tr>
+                <th className="text-right p-3">تاریخ</th>
+                <th className="text-right p-3">نوع عملیات</th>
+                <th className="text-right p-3">کالا</th>
+                <th className="text-right p-3">انبار</th>
+                <th className="text-right p-3">مقدار</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!isLoading && pagedRows.length === 0 && (
+                <tr>
+                  <td className="p-6 text-center text-muted-foreground" colSpan={5}>نتیجه‌ای پیدا نشد.</td>
+                </tr>
+              )}
+
+              {isLoading && (
+                <tr>
+                  <td className="p-6 text-center text-muted-foreground" colSpan={5}>در حال بارگذاری...</td>
+                </tr>
+              )}
+
+              {pagedRows.map((row) => (
+                <tr key={row.id} className="border-t border-border/60 hover:bg-secondary/15 transition-colors">
+                  <td className="p-3 whitespace-nowrap">{new Date(row.createdAt).toLocaleString('fa-IR')}</td>
+                  <td className="p-3">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${row.type === 'STOCK_IN' ? 'bg-emerald-500/10 text-emerald-700' : 'bg-rose-500/10 text-rose-700'}`}>
+                      {typeLabel[row.type]}
+                    </span>
+                  </td>
+                  <td className="p-3">{row.product.name}</td>
+                  <td className="p-3">
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <Warehouse className="w-3.5 h-3.5" />
+                      {row.warehouse.name}
+                    </span>
+                  </td>
+                  <td className="p-3 font-medium" dir="ltr">{(row.weight ?? row.quantity).toFixed(2)} kg</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="p-4 border-t border-border flex items-center justify-between text-sm text-muted-foreground">
+          <span>صفحه {page} از {totalPages}</span>
+          <div className="flex gap-2">
+            <button className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-50" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>قبلی</button>
+            <button className="px-3 py-1.5 rounded-lg border border-border disabled:opacity-50" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>بعدی</button>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function SummaryCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm text-muted-foreground">{title}</h3>
+        {icon}
+      </div>
+      <p className="text-2xl font-bold mt-3" dir="ltr">{value}</p>
+    </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+    >
+      {children}
+    </button>
   );
 }

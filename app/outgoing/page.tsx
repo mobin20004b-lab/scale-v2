@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { QrCode, Search, XCircle } from 'lucide-react';
 
 type BarcodeProduct = {
   id: string;
@@ -20,6 +21,7 @@ export default function OutgoingGoods() {
   const [weight, setWeight] = useState('');
   const [lotId, setLotId] = useState('');
   const [message, setMessage] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/warehouses').then(async (w) => {
@@ -31,8 +33,57 @@ export default function OutgoingGoods() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!scannerOpen) return;
+
+    let scanner: { clear: () => Promise<void> } | null = null;
+    let mounted = true;
+
+    const setupScanner = async () => {
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode');
+        if (!mounted) return;
+
+        scanner = new Html5QrcodeScanner(
+          'outgoing-qr-reader',
+          {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            rememberLastUsedCamera: true,
+          },
+          false,
+        );
+
+        scanner.render(
+          (decodedText) => {
+            setBarcode(decodedText);
+            setScannerOpen(false);
+            setMessage('کد با موفقیت اسکن شد. برای ادامه جستجو را بزنید.');
+          },
+          () => undefined,
+        );
+      } catch {
+        setMessage('دسترسی به دوربین یا اسکنر ممکن نیست.');
+      }
+    };
+
+    setupScanner();
+
+    return () => {
+      mounted = false;
+      if (scanner) {
+        scanner.clear().catch(() => undefined);
+      }
+    };
+  }, [scannerOpen]);
+
   const resolveBarcode = async () => {
-    const res = await fetch(`/api/barcode/${barcode}`);
+    if (!barcode.trim()) {
+      setMessage('لطفاً بارکد یا QR را وارد/اسکن کنید.');
+      return;
+    }
+
+    const res = await fetch(`/api/barcode/${encodeURIComponent(barcode.trim())}`);
     if (!res.ok) {
       await fetch('/api/barcode/unknown', {
         method: 'POST',
@@ -40,7 +91,7 @@ export default function OutgoingGoods() {
         body: JSON.stringify({ barcode }),
       });
       setProduct(null);
-      setMessage('بارکد ناشناخته ثبت شد.');
+      setMessage('بارکد/QR ناشناخته ثبت شد.');
       return;
     }
     const data = await res.json();
@@ -76,8 +127,39 @@ export default function OutgoingGoods() {
   return (
     <div className="space-y-4 max-w-xl">
       <h1 className="text-3xl font-bold">خروج کالا</h1>
-      <input className="w-full border border-border rounded-xl p-2 bg-background" value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="بارکد را اسکن/وارد کنید" dir="ltr" />
-      <button onClick={resolveBarcode} className="bg-secondary rounded-xl px-4 py-2">جستجو</button>
+
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+          <input
+            className="w-full border border-border rounded-xl p-2 bg-background"
+            value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            placeholder="بارکد یا QR را اسکن/وارد کنید"
+            dir="ltr"
+          />
+          <button
+            onClick={resolveBarcode}
+            className="bg-secondary rounded-xl px-4 py-2 flex items-center justify-center gap-2"
+          >
+            <Search className="w-4 h-4" />
+            جستجو
+          </button>
+          <button
+            onClick={() => setScannerOpen((prev) => !prev)}
+            className="bg-primary text-primary-foreground rounded-xl px-4 py-2 flex items-center justify-center gap-2"
+          >
+            {scannerOpen ? <XCircle className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+            {scannerOpen ? 'بستن اسکنر' : 'اسکن QR'}
+          </button>
+        </div>
+
+        {scannerOpen && (
+          <div className="rounded-xl border border-border bg-background p-3">
+            <p className="text-xs text-muted-foreground mb-2">QR یا بارکد لات را مقابل دوربین بگیرید.</p>
+            <div id="outgoing-qr-reader" className="min-h-[280px]" dir="ltr" />
+          </div>
+        )}
+      </div>
 
       {product && (
         <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
