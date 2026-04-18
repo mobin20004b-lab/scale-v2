@@ -19,7 +19,7 @@ export default function LoginPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.requiresBootstrap) {
-            router.replace('/setup');
+            router.replace('/signup');
             return;
           }
         }
