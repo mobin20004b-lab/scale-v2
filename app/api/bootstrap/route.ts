@@ -36,8 +36,24 @@ async function ensureInitialSettingsFile(companyName: string) {
 }
 
 export async function GET() {
-  const userCount = await prisma.user.count();
-  return NextResponse.json({ requiresBootstrap: userCount === 0 });
+  const [userCount, adminCount] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({
+      where: {
+        role: {
+          in: ['ADMIN', 'CEO'],
+        },
+      },
+    }),
+  ]);
+
+  const requiresBootstrap = userCount === 0 && adminCount === 0;
+
+  return NextResponse.json({
+    requiresBootstrap,
+    hasUsers: userCount > 0,
+    hasAdmin: adminCount > 0,
+  });
 }
 
 export async function POST(request: Request) {
