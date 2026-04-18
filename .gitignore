@@ -5,3 +5,4 @@ coverage/
 *.log
 .env*
 !.env.example
+esp32.tar.gz
