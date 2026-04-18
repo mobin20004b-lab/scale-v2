@@ -16,6 +16,15 @@ function isPrismaDuplicateError(error: unknown): error is { code: string } {
   );
 }
 
+function isPrismaErrorWithCode(error: unknown, code: string): error is { code: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === code
+  );
+}
+
 const SETTINGS_FILE_PATH = path.join(process.cwd(), 'data', 'system-settings.json');
 
 async function ensureInitialSettingsFile(companyName: string) {
@@ -36,12 +45,62 @@ async function ensureInitialSettingsFile(companyName: string) {
 }
 
 export async function GET() {
-  const userCount = await prisma.user.count();
-  return NextResponse.json({ requiresBootstrap: userCount === 0 });
+  try {
+    const [userCount, adminCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({
+        where: {
+          role: {
+            in: ['ADMIN', 'CEO'],
+          },
+        },
+      }),
+    ]);
+
+    const requiresBootstrap = userCount === 0 && adminCount === 0;
+
+    return NextResponse.json({
+      requiresBootstrap,
+      hasUsers: userCount > 0,
+      hasAdmin: adminCount > 0,
+    });
+  } catch (error) {
+    if (isPrismaErrorWithCode(error, 'P1011')) {
+      return NextResponse.json(
+        {
+          error: 'Database TLS configuration is invalid.',
+          requiresBootstrap: false,
+          hasUsers: false,
+          hasAdmin: false,
+        },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Unable to check bootstrap status.',
+        requiresBootstrap: false,
+        hasUsers: false,
+        hasAdmin: false,
+      },
+      { status: 503 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
-  const userCount = await prisma.user.count();
+  let userCount = 0;
+  try {
+    userCount = await prisma.user.count();
+  } catch (error) {
+    if (isPrismaErrorWithCode(error, 'P1011')) {
+      return NextResponse.json({ error: 'Database TLS configuration is invalid.' }, { status: 503 });
+    }
+
+    return NextResponse.json({ error: 'Unable to check system initialization state.' }, { status: 503 });
+  }
+
   if (userCount > 0) {
     return NextResponse.json({ error: 'System already initialized.' }, { status: 409 });
   }
