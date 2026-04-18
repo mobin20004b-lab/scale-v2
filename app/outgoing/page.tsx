@@ -36,7 +36,7 @@ export default function OutgoingGoods() {
   useEffect(() => {
     if (!scannerOpen) return;
 
-    let scanner: { clear: () => Promise<void> } | null = null;
+    let scanner: { render: (onSuccess: (decodedText: string) => void, onError?: (errorMessage: string, error?: unknown) => void) => void; clear: () => Promise<void> } | null = null;
     let mounted = true;
 
     const setupScanner = async () => {
