@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { CheckCircle2, Loader2, QrCode, Search, XCircle } from 'lucide-react';
 
 type LotSummary = {
@@ -22,7 +22,6 @@ type Warehouse = { id: string; name: string };
 
 export default function OutgoingGoods() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [barcode, setBarcode] = useState('');
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
@@ -58,13 +57,15 @@ export default function OutgoingGoods() {
   }, []);
 
   useEffect(() => {
-    const initialBarcode = searchParams.get('barcode');
+    if (typeof window === 'undefined') return;
+
+    const initialBarcode = new URLSearchParams(window.location.search).get('barcode');
     if (initialBarcode) {
       setBarcode(initialBarcode);
       void resolveBarcode(initialBarcode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     if (!scannerOpen) return;
