@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Barcode from 'react-barcode';
 import { QRCodeSVG } from 'qrcode.react';
+import { openLabelPrintWindow } from '@/lib/label-print';
 import {
   Package,
   Plus,
@@ -546,7 +547,17 @@ export default function ProductsManagement() {
               <h3 className="text-xl font-bold">پیش‌نمایش رسید لات</h3>
               <div className="flex gap-2">
                 <button
-                  onClick={() => window.print()}
+                  onClick={() =>
+                    openLabelPrintWindow({
+                      productName: receiptLot.productName,
+                      quantity: receiptLot.quantity,
+                      unit: receiptLot.productUnit,
+                      lotNumber: receiptLot.lotNumber,
+                      createdAt: receiptLot.createdAt,
+                      barcode: receiptLot.barcode,
+                      qrCode: receiptLot.qrCode,
+                    })
+                  }
                   className="bg-primary text-primary-foreground rounded-xl px-4 py-2 flex items-center gap-2"
                 >
                   <Printer className="w-4 h-4" />
