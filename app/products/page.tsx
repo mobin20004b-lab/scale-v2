@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Search, Edit, Trash2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import Link from 'next/link';
+import { Package, Plus, Search, Edit, Trash2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 
 interface Lot {
   id: string;
@@ -327,6 +328,13 @@ export default function ProductsManagement() {
                       </td>
                       <td className="px-6 py-4 text-left">
                         <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/outgoing?barcode=${encodeURIComponent(product.barcode)}`}
+                            className="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                            title="خروج سریع"
+                          >
+                            <LogOut className="w-4 h-4" />
+                          </Link>
                           <button
                             onClick={() => startEdit(product)}
                             className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
