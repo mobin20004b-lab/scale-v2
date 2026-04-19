@@ -25,12 +25,16 @@ export default function PrintLabelClient({
   quantity,
 }: PrintLabelClientProps) {
   useEffect(() => {
+    document.body.classList.add('print-label-page');
     const timeout = setTimeout(() => window.print(), 200);
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      document.body.classList.remove('print-label-page');
+    };
   }, []);
 
   return (
-    <main className="min-h-screen bg-background p-4 sm:p-8 print:bg-white print:p-0">
+    <main id="print-label-root" className="min-h-screen bg-background p-4 sm:p-8 print:bg-white print:p-0">
       <div className="mx-auto max-w-[10cm] print:max-w-none">
         <div className="mb-4 flex justify-end print:hidden">
           <button
