@@ -26,6 +26,8 @@ export default function OutgoingGoods() {
   const [barcode, setBarcode] = useState('');
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [products, setProducts] = useState<BarcodeProduct[]>([]);
+  const [productSearch, setProductSearch] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [weight, setWeight] = useState('');
   const [lotId, setLotId] = useState('');
@@ -47,11 +49,19 @@ export default function OutgoingGoods() {
   const canSubmit = Boolean(product && warehouseId && lotId && isWeightValid && !isSubmitting);
 
   useEffect(() => {
-    fetch('/api/warehouses').then(async (w) => {
+    Promise.all([fetch('/api/warehouses'), fetch('/api/products')]).then(async ([w, p]) => {
       if (w.ok) {
         const wv = await w.json();
         setWarehouses(wv);
         if (wv.length > 0) setWarehouseId(wv[0].id);
+      }
+
+      if (p.ok) {
+        const pv = (await p.json()) as BarcodeProduct[];
+        setProducts(pv.map((item) => ({
+          ...item,
+          lots: item.lots?.filter((lot) => lot.quantity > 0) ?? [],
+        })));
       }
     });
   }, []);
@@ -203,6 +213,29 @@ export default function OutgoingGoods() {
     }
   };
 
+  const selectProductManually = (selectedProduct: BarcodeProduct) => {
+    setProduct(selectedProduct);
+    setBarcode(selectedProduct.barcode);
+    const resolvedLotId = selectedProduct.lotId ?? selectedProduct.lots?.[0]?.id ?? '';
+    setLotId(resolvedLotId);
+
+    const lot = selectedProduct.lots?.find((l) => l.id === resolvedLotId);
+    setWeight(lot ? String(lot.quantity) : '');
+
+    setShowSuccessState(false);
+    setMessageType('success');
+    setMessage('کالا از لیست انتخاب شد. اطلاعات خروج تکمیل شد.');
+  };
+
+  const filteredProducts = useMemo(() => {
+    const search = productSearch.trim();
+    if (!search) return products;
+
+    return products.filter((item) =>
+      item.name.includes(search) || item.barcode.includes(search),
+    );
+  }, [productSearch, products]);
+
   return (
     <div className="space-y-4 max-w-xl">
       <h1 className="text-3xl font-bold">خروج کالا</h1>
@@ -245,6 +278,35 @@ export default function OutgoingGoods() {
             <div id="outgoing-qr-reader" className="min-h-[280px]" dir="ltr" />
           </div>
         )}
+
+        <div className="border-t border-border pt-3 space-y-2">
+          <p className="text-sm font-medium">انتخاب دستی کالا برای خروج</p>
+          <input
+            className="w-full border border-border rounded-xl p-2 bg-background"
+            placeholder="جستجوی دستی کالا (نام یا بارکد)"
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            dir="rtl"
+          />
+
+          <div className="border border-border rounded-xl max-h-48 overflow-y-auto divide-y divide-border">
+            {filteredProducts.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-3">کالایی برای نمایش پیدا نشد.</p>
+            ) : (
+              filteredProducts.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => selectProductManually(item)}
+                  className="w-full p-3 text-right hover:bg-muted/40 transition-colors"
+                >
+                  <p className="font-medium text-sm">{item.name}</p>
+                  <p className="text-xs text-muted-foreground" dir="ltr">{item.barcode}</p>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
       {showSuccessState ? (
