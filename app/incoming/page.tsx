@@ -59,6 +59,14 @@ export default function IncomingGoods() {
   }, [scaleId]);
 
   const selectedScale = scales.find((s) => s.id === scaleId);
+  const selectedProduct = products.find((p) => p.id === productId);
+  const isFullPackageProduct = selectedProduct?.unit === 'box' || selectedProduct?.unit === 'pcs';
+
+  useEffect(() => {
+    if (!scaleId && isFullPackageProduct && weight !== '1') {
+      setWeight('1');
+    }
+  }, [scaleId, isFullPackageProduct, weight]);
 
   const submit = async () => {
     const finalWeight = Number(weight || selectedScale?.currentWeight || 0);
@@ -113,12 +121,15 @@ export default function IncomingGoods() {
 
         <input
           className="w-full border border-border rounded-xl p-2 bg-background disabled:bg-secondary/50 disabled:text-muted-foreground"
-          placeholder="وزن دستی (اختیاری)"
+          placeholder={isFullPackageProduct ? 'وزن برای کالای بسته‌ای ثابت است' : 'وزن دستی (اختیاری)'}
           value={scaleId ? (selectedScale?.currentWeight || '') : weight}
           onChange={(e) => setWeight(e.target.value)}
-          readOnly={!!scaleId}
-          disabled={!!scaleId}
+          readOnly={!!scaleId || isFullPackageProduct}
+          disabled={!!scaleId || isFullPackageProduct}
         />
+        {isFullPackageProduct && !scaleId && (
+          <p className="text-xs text-muted-foreground">برای کالاهای بسته‌ای/عددی وزن قابل ویرایش نیست.</p>
+        )}
 
         {selectedScale && <p className="text-sm text-muted-foreground">وضعیت سیگنال: {selectedScale.signal}</p>}
 

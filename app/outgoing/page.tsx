@@ -14,6 +14,7 @@ type BarcodeProduct = {
   id: string;
   name: string;
   barcode: string;
+  unit?: string;
   lotId?: string;
   lots?: LotSummary[];
 };
@@ -45,6 +46,7 @@ export default function OutgoingGoods() {
     () => product?.lots?.find((l) => l.id === lotId) ?? null,
     [product?.lots, lotId],
   );
+  const isFullPackageProduct = product?.unit === 'box' || product?.unit === 'pcs';
 
   const canSubmit = Boolean(product && warehouseId && lotId && isWeightValid && !isSubmitting);
 
@@ -382,14 +384,18 @@ export default function OutgoingGoods() {
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground mr-1">وزن خروجی</label>
               <input
-                className="w-full border border-border rounded-xl p-2 bg-background"
+                className="w-full border border-border rounded-xl p-2 bg-background disabled:bg-secondary/50 disabled:text-muted-foreground"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                placeholder="وزن به کیلوگرم"
+                placeholder={isFullPackageProduct ? 'وزن برای کالای بسته‌ای ثابت است' : 'وزن به کیلوگرم'}
                 dir="ltr"
+                readOnly={isFullPackageProduct}
+                disabled={isFullPackageProduct}
               />
               <p className="text-xs text-muted-foreground">
-                هنگام اسکن، وزن از لات پر می‌شود و می‌توانید قبل از ثبت ویرایش کنید.
+                {isFullPackageProduct
+                  ? 'برای کالاهای بسته‌ای/عددی وزن از لات خوانده می‌شود و قابل ویرایش نیست.'
+                  : 'هنگام اسکن، وزن از لات پر می‌شود و می‌توانید قبل از ثبت ویرایش کنید.'}
                 {selectedLot ? ` موجودی لات انتخابی: ${selectedLot.quantity}` : ''}
               </p>
             </div>
