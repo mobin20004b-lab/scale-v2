@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Package, ArrowDownToLine, ArrowUpFromLine, Activity } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type Ledger = {
   id: string;
@@ -58,26 +59,26 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card title="موجودی کل" value={`${metrics.total.toFixed(2)} کیلوگرم`} subtitle="در حال حاضر در انبار" icon={<Package className="w-5 h-5 text-primary" />} />
-        <Card title="ورودی امروز" value={`${metrics.incomingToday.toFixed(2)} کیلوگرم`} subtitle="ثبت شده امروز" icon={<ArrowDownToLine className="w-5 h-5 text-primary" />} />
-        <Card title="خروجی امروز" value={`${metrics.outgoingToday.toFixed(2)} کیلوگرم`} subtitle="خارج شده امروز" icon={<ArrowUpFromLine className="w-5 h-5 text-primary" />} />
-        <Card title="ترازوهای فعال" value={`${metrics.onlineScales} / ${scales.length}`} subtitle="دستگاه‌های متصل" icon={<Activity className="w-5 h-5 text-primary" />} />
+        <MetricCard title="موجودی کل" value={`${metrics.total.toFixed(2)} کیلوگرم`} subtitle="در حال حاضر در انبار" icon={<Package className="w-5 h-5 text-primary" />} />
+        <MetricCard title="ورودی امروز" value={`${metrics.incomingToday.toFixed(2)} کیلوگرم`} subtitle="ثبت شده امروز" icon={<ArrowDownToLine className="w-5 h-5 text-primary" />} />
+        <MetricCard title="خروجی امروز" value={`${metrics.outgoingToday.toFixed(2)} کیلوگرم`} subtitle="خارج شده امروز" icon={<ArrowUpFromLine className="w-5 h-5 text-primary" />} />
+        <MetricCard title="ترازوهای فعال" value={`${metrics.onlineScales} / ${scales.length}`} subtitle="دستگاه‌های متصل" icon={<Activity className="w-5 h-5 text-primary" />} />
       </div>
     </div>
   );
 }
 
-function Card({ title, value, subtitle, icon }: { title: string; value: string; subtitle: string; icon: React.ReactNode }) {
+function MetricCard({ title, value, subtitle, icon }: { title: string; value: string; subtitle: string; icon: React.ReactNode }) {
   return (
-    <div className="p-6 bg-card rounded-2xl border border-border shadow-sm">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
         {icon}
-      </div>
-      <div className="mt-4">
+      </CardHeader>
+      <CardContent className="pt-0">
         <div className="text-3xl font-bold text-foreground">{value}</div>
-        <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
-      </div>
-    </div>
+        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+      </CardContent>
+    </Card>
   );
 }

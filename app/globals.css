@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 
 @theme {
+  /* Color tokens */
   --color-background: #fdfdf5;
   --color-foreground: #1a1c18;
   --color-card: #fdfdf5;
@@ -21,16 +22,54 @@
   --color-border: #c3c8bb;
   --color-input: #c3c8bb;
   --color-ring: #386a20;
+
+  /* Spacing tokens */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+
+  /* Radius tokens */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Shadow tokens */
+  --shadow-xs: 0 1px 2px rgba(20, 23, 17, 0.08);
+  --shadow-sm: 0 2px 8px rgba(20, 23, 17, 0.08);
+  --shadow-md: 0 10px 30px rgba(20, 23, 17, 0.12);
+
+  /* Typography tokens */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+}
+
+:root {
+  --radius-input: var(--radius-xl);
+  --radius-button: var(--radius-xl);
+  --radius-card: var(--radius-2xl);
+  --radius-modal: var(--radius-2xl);
+
+  --shadow-card: var(--shadow-sm);
+  --shadow-overlay: var(--shadow-md);
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-vazirmatn), system-ui, -apple-system, sans-serif;

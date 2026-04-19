@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+import { Button, Card, FormField, Input, Toast } from '@/components/ui';
+
 export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
@@ -54,42 +56,35 @@ export default function LoginPage() {
 
   if (checkingBootstrap) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <p className="text-muted-foreground">در حال آماده‌سازی سیستم...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-md bg-card border border-border rounded-2xl p-6 space-y-4">
-        <h1 className="text-2xl font-bold">ورود به گرین‌استاک</h1>
-        <p className="text-muted-foreground text-sm">با نام کاربری/ایمیل و رمز عبور وارد شوید.</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-md">
+        <Card className="p-6 space-y-4">
+          <div>
+            <h1 className="text-2xl font-bold">ورود به گرین‌استاک</h1>
+            <p className="text-sm text-muted-foreground">با نام کاربری/ایمیل و رمز عبور وارد شوید.</p>
+          </div>
 
-        <div>
-          <label className="block text-sm mb-1">نام کاربری یا ایمیل</label>
-          <input
-            className="w-full border border-border rounded-xl px-3 py-2 bg-background"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-          />
-        </div>
+          <FormField label="نام کاربری یا ایمیل" required>
+            <Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
+          </FormField>
 
-        <div>
-          <label className="block text-sm mb-1">رمز عبور</label>
-          <input
-            type="password"
-            className="w-full border border-border rounded-xl px-3 py-2 bg-background"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+          <FormField label="رمز عبور" required>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </FormField>
 
-        {error && <p className="text-destructive text-sm">{error}</p>}
+          {error ? <Toast tone="destructive">{error}</Toast> : null}
 
-        <button disabled={loading} className="w-full bg-primary text-primary-foreground rounded-xl py-2">
-          {loading ? 'در حال ورود...' : 'ورود'}
-        </button>
+          <Button disabled={loading} className="w-full">
+            {loading ? 'در حال ورود...' : 'ورود'}
+          </Button>
+        </Card>
       </form>
     </div>
   );

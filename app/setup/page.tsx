@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+import { Button, Card, FormField, Input, Toast } from '@/components/ui';
+
 export default function SetupPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -73,52 +75,48 @@ export default function SetupPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <p className="text-muted-foreground">در حال بررسی وضعیت راه‌اندازی...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
-      <form onSubmit={onSubmit} className="w-full max-w-2xl bg-card border border-border rounded-2xl p-6 md:p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">راه‌اندازی اولیه سیستم</h1>
-          <p className="text-muted-foreground text-sm mt-1">برای اولین ورود، اطلاعات مدیر سیستم و داده‌های اولیه را ثبت کنید.</p>
-        </div>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <form onSubmit={onSubmit} className="w-full max-w-2xl">
+        <Card className="p-6 md:p-8 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold">راه‌اندازی اولیه سیستم</h1>
+            <p className="mt-1 text-sm text-muted-foreground">برای اولین ورود، اطلاعات مدیر سیستم و داده‌های اولیه را ثبت کنید.</p>
+          </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm mb-1">نام شرکت</label>
-            <input className="w-full border border-border rounded-xl px-3 py-2 bg-background" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField label="نام شرکت">
+              <Input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} />
+            </FormField>
+            <FormField label="نام انبار پیش‌فرض">
+              <Input value={form.warehouseName} onChange={(e) => setForm({ ...form, warehouseName: e.target.value })} />
+            </FormField>
+            <FormField label="نام مدیر" required>
+              <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </FormField>
+            <FormField label="نام کاربری مدیر" required>
+              <Input required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            </FormField>
+            <FormField label="ایمیل مدیر" required>
+              <Input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </FormField>
+            <FormField label="رمز عبور مدیر" required>
+              <Input required minLength={6} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            </FormField>
           </div>
-          <div>
-            <label className="block text-sm mb-1">نام انبار پیش‌فرض</label>
-            <input className="w-full border border-border rounded-xl px-3 py-2 bg-background" value={form.warehouseName} onChange={(e) => setForm({ ...form, warehouseName: e.target.value })} />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">نام مدیر</label>
-            <input required className="w-full border border-border rounded-xl px-3 py-2 bg-background" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">نام کاربری مدیر</label>
-            <input required className="w-full border border-border rounded-xl px-3 py-2 bg-background" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">ایمیل مدیر</label>
-            <input required type="email" className="w-full border border-border rounded-xl px-3 py-2 bg-background" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">رمز عبور مدیر</label>
-            <input required minLength={6} type="password" className="w-full border border-border rounded-xl px-3 py-2 bg-background" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          </div>
-        </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+          {error ? <Toast tone="destructive">{error}</Toast> : null}
 
-        <button disabled={loading} className="w-full bg-primary text-primary-foreground rounded-xl py-2">
-          {loading ? 'در حال ایجاد مدیر و داده‌های اولیه...' : 'ایجاد مدیر و شروع کار'}
-        </button>
+          <Button disabled={loading} className="w-full">
+            {loading ? 'در حال ایجاد مدیر و داده‌های اولیه...' : 'ایجاد مدیر و شروع کار'}
+          </Button>
+        </Card>
       </form>
     </div>
   );
