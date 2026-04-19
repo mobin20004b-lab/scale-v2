@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Barcode from 'react-barcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { AlertCircle, CheckCircle2, Loader2, Printer, RefreshCcw } from 'lucide-react';
+import { openLabelPrintWindow } from '@/lib/label-print';
 
 type Product = { id: string; name: string; unit: string };
 type Warehouse = { id: string; name: string };
@@ -136,7 +137,18 @@ export default function IncomingGoods() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!generatedLot) return;
+    const lotProduct = products.find((p) => p.id === generatedLot.productId);
+
+    openLabelPrintWindow({
+      productName: lotProduct?.name || '-',
+      quantity: generatedLot.quantity,
+      unit: lotProduct?.unit || 'kg',
+      lotNumber: generatedLot.lotNumber,
+      createdAt: generatedLot.createdAt,
+      barcode: generatedLot.barcode,
+      qrCode: generatedLot.qrCode,
+    });
   };
 
   return (
