@@ -77,6 +77,18 @@
 }
 
 @media print {
+  @page {
+    size: 100mm 150mm;
+    margin: 0;
+  }
+
+  html:has(body.print-label-page),
+  body.print-label-page {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
   body.print-label-page * {
     visibility: hidden !important;
   }
