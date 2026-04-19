@@ -34,7 +34,9 @@ const shouldUseSsl = () => {
     return false;
   }
 
-  return process.env.NODE_ENV === 'production';
+  // Default to non-TLS unless explicitly requested via sslmode/PRISMA_PG_SSL.
+  // This avoids P1011 on local/private Postgres instances that don't support SSL.
+  return false;
 };
 
 const prismaClientSingleton = () => {
