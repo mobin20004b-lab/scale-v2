@@ -153,7 +153,7 @@ export default function ProductsManagement() {
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">مدیریت محصولات</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">محصولات</h1>
           <p className="text-muted-foreground mt-1">مدیریت کاتالوگ محصولات و بارکدها.</p>
         </div>
         <button
@@ -180,7 +180,7 @@ export default function ProductsManagement() {
       )}
 
       {isAdding && (
-        <div className="bg-card p-6 rounded-3xl border border-border shadow-sm space-y-4">
+        <div id="new-product" className="bg-card p-6 rounded-3xl border border-border shadow-sm space-y-4">
           <h2 className="text-xl font-semibold mb-4">{editingProduct ? 'ویرایش محصول' : 'افزودن محصول جدید'}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>

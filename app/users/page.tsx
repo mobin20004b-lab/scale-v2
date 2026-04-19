@@ -27,7 +27,7 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">کاربران و نقش‌ها</h1>
+      <h1 className="text-3xl font-bold">کاربران</h1>
 
       <div className="bg-card border border-border rounded-2xl p-4 grid md:grid-cols-5 gap-3">
         <input className="border border-border rounded-xl p-2 bg-background" placeholder="نام" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />

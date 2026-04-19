@@ -100,7 +100,7 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">گزارش ورود و خروج کالا</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">گزارش‌ها</h1>
         <p className="text-muted-foreground mt-1">نمایش ساده‌تر، قابل جستجو و قابل فیلتر برای مدیریت بهتر تردد کالا.</p>
       </div>
 
