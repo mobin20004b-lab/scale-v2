@@ -22,6 +22,9 @@ export default function OutgoingGoods() {
   const [lotId, setLotId] = useState('');
   const [message, setMessage] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const numericWeight = Number(weight);
+  const isWeightValid = Number.isFinite(numericWeight) && numericWeight > 0;
+  const canSubmit = Boolean(product && warehouseId && lotId && isWeightValid);
 
   useEffect(() => {
     fetch('/api/warehouses').then(async (w) => {
@@ -96,13 +99,15 @@ export default function OutgoingGoods() {
     }
     const data = await res.json();
     setProduct(data);
+    let resolvedLotId = '';
     if (data.lotId) {
-      setLotId(data.lotId);
+      resolvedLotId = data.lotId;
     } else if (data.lots && data.lots.length > 0) {
-      setLotId(data.lots[0].id);
-    } else {
-      setLotId('');
+      resolvedLotId = data.lots[0].id;
     }
+    setLotId(resolvedLotId);
+    const selectedLot = data.lots?.find((l: { id: string; quantity: number }) => l.id === resolvedLotId);
+    setWeight(selectedLot ? String(selectedLot.quantity) : '');
     setMessage('');
   };
 
@@ -133,7 +138,12 @@ export default function OutgoingGoods() {
           <input
             className="w-full border border-border rounded-xl p-2 bg-background"
             value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
+            onChange={(e) => {
+              setBarcode(e.target.value);
+              setWeight('');
+              setLotId('');
+              setProduct(null);
+            }}
             placeholder="بارکد یا QR را اسکن/وارد کنید"
             dir="ltr"
           />
@@ -167,7 +177,16 @@ export default function OutgoingGoods() {
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground mr-1">لات تخصیصی (بچ)</label>
-            <select className="w-full border border-border rounded-xl p-2 bg-background font-mono text-sm" value={lotId} onChange={(e) => setLotId(e.target.value)}>
+            <select
+              className="w-full border border-border rounded-xl p-2 bg-background font-mono text-sm"
+              value={lotId}
+              onChange={(e) => {
+                const nextLotId = e.target.value;
+                setLotId(nextLotId);
+                const selectedLot = product.lots?.find((l) => l.id === nextLotId);
+                setWeight(selectedLot ? String(selectedLot.quantity) : '');
+              }}
+            >
               {product.lotId ? (
                 <option value={product.lotId}>{product.lots?.find(l => l.id === product.lotId)?.lotNumber || 'لات اسکن شده'} (مستقیم)</option>
               ) : (
@@ -192,9 +211,10 @@ export default function OutgoingGoods() {
           <div className="space-y-1">
             <label className="text-sm font-medium text-muted-foreground mr-1">وزن خروجی</label>
             <input className="w-full border border-border rounded-xl p-2 bg-background" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="وزن به کیلوگرم" dir="ltr" />
+            <p className="text-xs text-muted-foreground">Prefilled from lot stock; editable before submit.</p>
           </div>
 
-          <button onClick={submit} disabled={!lotId} className="w-full bg-primary text-primary-foreground rounded-xl py-3 mt-2 disabled:opacity-50 transition-opacity">تایید خروج</button>
+          <button onClick={submit} disabled={!canSubmit} className="w-full bg-primary text-primary-foreground rounded-xl py-3 mt-2 disabled:opacity-50 transition-opacity">تایید خروج</button>
         </div>
       )}
       {message && <p className="text-sm">{message}</p>}
