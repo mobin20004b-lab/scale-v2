@@ -15,7 +15,8 @@ import {
   Package,
   ScanBarcode,
   FileText,
-  Settings
+  Settings,
+  SwatchBook
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -38,6 +39,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     { name: 'کاربران', href: '/users', icon: Users },
     { name: 'گزارش‌ها', href: '/reports', icon: FileText },
     { name: 'تنظیمات', href: '/settings', icon: Settings },
+    { name: 'راهنمای طراحی', href: '/style-guide', icon: SwatchBook },
   ];
 
   return (
@@ -57,7 +59,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <motion.div
-        className={`fixed inset-y-0 right-0 z-50 w-72 bg-surface border-l border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        className={`fixed inset-y-0 right-0 z-50 w-72 bg-card border-l border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -91,7 +93,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center h-16 px-4 border-b border-border bg-surface lg:px-8">
+        <header className="flex items-center h-16 px-4 border-b border-border bg-card lg:px-8">
           <button
             onClick={() => setIsOpen(true)}
             className="p-2 ml-4 text-foreground rounded-lg hover:bg-secondary lg:hidden"
