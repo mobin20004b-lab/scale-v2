@@ -46,7 +46,10 @@ const prismaClientSingleton = () => {
 
   const adapter = new PrismaPg({
     connectionString,
-    ssl: shouldUseSsl() ? { rejectUnauthorized: false } : undefined,
+    // Force-disable TLS when SSL is not requested.
+    // Passing `undefined` allows pg to infer SSL from connection string params
+    // (for example `sslmode=require`), which can break local non-TLS Postgres.
+    ssl: shouldUseSsl() ? { rejectUnauthorized: false } : false,
   });
 
   return new PrismaClient({ adapter });
