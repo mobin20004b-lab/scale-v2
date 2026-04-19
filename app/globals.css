@@ -75,3 +75,19 @@
     font-family: var(--font-vazirmatn), system-ui, -apple-system, sans-serif;
   }
 }
+
+@media print {
+  body.print-label-page * {
+    visibility: hidden !important;
+  }
+
+  body.print-label-page #print-label-root,
+  body.print-label-page #print-label-root * {
+    visibility: visible !important;
+  }
+
+  body.print-label-page #print-label-root {
+    position: absolute;
+    inset: 0;
+  }
+}
