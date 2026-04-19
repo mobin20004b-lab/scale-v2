@@ -1,24 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  PackagePlus, 
-  PackageMinus, 
-  Scale, 
-  Users, 
-  Menu,
-  X,
-  Building2,
-  Package,
-  ScanBarcode,
-  FileText,
-  Settings,
-  SwatchBook
-} from 'lucide-react';
+import { ChevronLeft, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import CommandPalette from '@/components/CommandPalette';
+import { navItems, quickActionsByPath } from '@/lib/navigation';
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,19 +16,20 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const navigation = [
-    { name: 'داشبورد', href: '/', icon: LayoutDashboard },
-    { name: 'محصولات', href: '/products', icon: Package },
-    { name: 'بارکدهای ناشناخته', href: '/barcodes', icon: ScanBarcode },
-    { name: 'مدیریت انبارها', href: '/warehouses', icon: Building2 },
-    { name: 'ورود کالا', href: '/incoming', icon: PackagePlus },
-    { name: 'خروج کالا', href: '/outgoing', icon: PackageMinus },
-    { name: 'مدیریت ترازوها', href: '/scales', icon: Scale },
-    { name: 'کاربران', href: '/users', icon: Users },
-    { name: 'گزارش‌ها', href: '/reports', icon: FileText },
-    { name: 'تنظیمات', href: '/settings', icon: Settings },
-    { name: 'راهنمای طراحی', href: '/style-guide', icon: SwatchBook },
-  ];
+  const groupedNavigation = Object.entries(
+    navItems.reduce<Record<string, typeof navItems>>((acc, item) => {
+      if (!acc[item.goal]) acc[item.goal] = [];
+      acc[item.goal].push(item);
+      return acc;
+    }, {}),
+  );
+
+  const activeItem = navItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  const breadcrumbSegments = pathname.split('/').filter(Boolean);
+  const quickActions =
+    quickActionsByPath[pathname] ||
+    quickActionsByPath[activeItem?.href ?? ''] ||
+    quickActionsByPath['/'];
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -69,43 +58,101 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
             <X className="w-6 h-6" />
           </button>
         </div>
-        <nav className="p-4 space-y-2">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                  isActive 
-                    ? 'bg-primary text-primary-foreground font-medium shadow-sm' 
-                    : 'text-foreground hover:bg-secondary hover:text-secondary-foreground'
-                }`}
-              >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-                {item.name}
-              </Link>
-            );
-          })}
+        <nav className="h-[calc(100vh-4rem)] overflow-y-auto p-4 space-y-5">
+          {groupedNavigation.map(([goal, items]) => (
+            <div key={goal} className="space-y-2">
+              <p className="px-3 text-xs font-semibold text-muted-foreground">{goal}</p>
+              {items.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-semibold shadow-sm ring-2 ring-primary/35'
+                        : 'text-foreground hover:bg-secondary hover:text-secondary-foreground'
+                    }`}
+                  >
+                    <item.icon className={`w-5 h-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </motion.div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center h-16 px-4 border-b border-border bg-card lg:px-8">
+        <header className="space-y-3 px-4 py-3 border-b border-border bg-card lg:px-8">
+          <div className="flex items-center gap-3">
           <button
             onClick={() => setIsOpen(true)}
             className="p-2 ml-4 text-foreground rounded-lg hover:bg-secondary lg:hidden"
           >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                <Link href="/" className="hover:text-foreground">خانه</Link>
+                {breadcrumbSegments.map((segment, index) => {
+                  const href = `/${breadcrumbSegments.slice(0, index + 1).join('/')}`;
+                  const isLast = index === breadcrumbSegments.length - 1;
+                  const matched = navItems.find((item) => item.href === href);
+                  const label = matched?.label || decodeURIComponent(segment).replace(/-/g, ' ');
+                  return (
+                    <span className="inline-flex items-center gap-1" key={href}>
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      {isLast ? (
+                        <span className="font-medium text-foreground">{label}</span>
+                      ) : (
+                        <Link href={href} className="hover:text-foreground">{label}</Link>
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+              <h2 className="text-lg font-semibold text-foreground mt-1">{activeItem?.label ?? 'گرین‌استاک'}</h2>
+            </div>
+            <div className="hidden lg:flex items-center gap-1 rounded-xl bg-secondary/50 p-1">
+              {navItems.slice(1, 5).map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`rounded-lg px-3 py-1.5 text-xs transition-colors ${
+                      isActive ? 'bg-primary text-primary-foreground font-medium' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <CommandPalette />
+            <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
               <div className="w-2 h-2 rounded-full bg-primary" />
               سیستم آنلاین است
             </div>
+          </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground ml-1">اقدامات سریع:</span>
+            {quickActions.map((action) => (
+              <Link
+                key={`${pathname}-${action.label}`}
+                href={action.href}
+                className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary/70 transition-colors"
+              >
+                {action.label}
+              </Link>
+            ))}
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-background">

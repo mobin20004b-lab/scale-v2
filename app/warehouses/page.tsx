@@ -40,7 +40,7 @@ export default function WarehousesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">مدیریت انبارها</h1>
+      <h1 className="text-3xl font-bold">انبارها</h1>
 
       <div className="bg-card border border-border rounded-2xl p-4 grid md:grid-cols-4 gap-3">
         <input className="border border-border rounded-xl p-2 bg-background" placeholder="نام انبار" value={name} onChange={(e) => setName(e.target.value)} />
