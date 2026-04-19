@@ -1,7 +1,12 @@
 import PrintLabelClient from './PrintLabelClient';
+import type { Metadata } from 'next';
 
 type PrintLabelPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export const metadata: Metadata = {
+  title: 'چاپ لیبل',
 };
 
 const getSearchValue = (value: string | string[] | undefined, fallback: string) => {

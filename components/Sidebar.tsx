@@ -12,7 +12,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  if (pathname === '/login' || pathname === '/setup') {
+  if (pathname === '/login' || pathname === '/setup' || pathname.startsWith('/print-label')) {
     return <>{children}</>;
   }
 
