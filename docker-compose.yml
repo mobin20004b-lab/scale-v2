@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   db:
-    image: postgres:15-alpine
+    image: mirror2.chabokan.net/postgres:15-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -17,12 +15,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        DATABASE_URL: postgresql://postgres:password@db:5432/warehouse_db?schema=public
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/warehouse_db?schema=public
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=super_secret_key_for_development_only
+      DATABASE_URL: postgresql://postgres:password@db:5432/warehouse_db?schema=public
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: super_secret_key_for_development_only
     depends_on:
       - db
     restart: unless-stopped
