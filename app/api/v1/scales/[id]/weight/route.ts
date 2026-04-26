@@ -5,7 +5,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id: pathScaleId } = await params;
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,13 +14,13 @@ export async function POST(
 
     const apiKey = authHeader.split(' ')[1];
 
-    // Verify the scale ID and API key
+    // Token is the source of truth, path id is informational only.
     const scale = await prisma.scale.findUnique({
-      where: { id }
+      where: { apiKey },
     });
 
-    if (!scale || scale.apiKey !== apiKey) {
-      return NextResponse.json({ error: 'Invalid API Key or Scale ID' }, { status: 401 });
+    if (!scale) {
+      return NextResponse.json({ error: 'Invalid API Key' }, { status: 401 });
     }
 
     let weightInGrams: number;
@@ -49,17 +49,23 @@ export async function POST(
     }
 
     await prisma.scale.update({
-      where: { id },
+      where: { id: scale.id },
       data: {
         currentWeight,
         status: 'ONLINE',
         signal: 'FRESH',
         lastSeen: new Date(),
-        ...(uptime !== undefined && { uptimeSec: uptime })
-      }
+        ...(uptime !== undefined && { uptimeSec: uptime }),
+      },
     });
 
-    return NextResponse.json({ success: true, message: 'Weight updated successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Weight updated successfully',
+      scaleId: scale.id,
+      pathScaleId,
+      idMatched: scale.id === pathScaleId,
+    });
   } catch (error) {
     console.error('Error processing scale data:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

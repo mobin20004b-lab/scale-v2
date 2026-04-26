@@ -308,7 +308,7 @@ export default function ScalesPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         {filteredScales.map((scale) => {
-          const curlCommand = `curl -X POST $BASE/api/v1/scales/${scale.id}/weight \\\n  -H \"Authorization: Bearer ${scale.apiKey}\" \\\n  -H \"Content-Type: text/plain\" \\\n  -d '1500'`;
+          const curlCommand = `curl -X POST $BASE/api/v1/scales/any-id/weight \\\n  -H \"Authorization: Bearer ${scale.apiKey}\" \\\n  -H \"Content-Type: text/plain\" \\\n  -d '1500'`;
 
           return (
             <div key={scale.id} className="bg-card border border-border rounded-2xl p-4 space-y-3 shadow-sm">
@@ -355,7 +355,7 @@ export default function ScalesPage() {
 
               <div className="rounded-xl bg-secondary/30 p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground">نمونه ارسال وزن</p>
+                  <p className="text-xs text-muted-foreground">نمونه ارسال وزن (شناسه مسیر دلخواه است)</p>
                   <button
                     onClick={() => copyText(curlCommand, 'دستور cURL')}
                     className="text-xs rounded-lg border border-border px-2 py-1 hover:bg-background inline-flex items-center gap-1"
