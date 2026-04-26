@@ -20,6 +20,7 @@ type BarcodeProduct = {
 };
 
 type Warehouse = { id: string; name: string };
+type Customer = { id: string; name: string; phone?: string | null; email?: string | null };
 
 export default function OutgoingGoods() {
   const router = useRouter();
@@ -28,8 +29,10 @@ export default function OutgoingGoods() {
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<BarcodeProduct[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [weight, setWeight] = useState('');
   const [lotId, setLotId] = useState('');
   const [message, setMessage] = useState('');
@@ -48,10 +51,10 @@ export default function OutgoingGoods() {
   );
   const isFullPackageProduct = product?.unit === 'box' || product?.unit === 'pcs';
 
-  const canSubmit = Boolean(product && warehouseId && lotId && isWeightValid && !isSubmitting);
+  const canSubmit = Boolean(product && warehouseId && customerId && lotId && isWeightValid && !isSubmitting);
 
   useEffect(() => {
-    Promise.all([fetch('/api/warehouses'), fetch('/api/products')]).then(async ([w, p]) => {
+    Promise.all([fetch('/api/warehouses'), fetch('/api/products'), fetch('/api/customers')]).then(async ([w, p, c]) => {
       if (w.ok) {
         const wv = await w.json();
         setWarehouses(wv);
@@ -64,6 +67,12 @@ export default function OutgoingGoods() {
           ...item,
           lots: item.lots?.filter((lot) => lot.quantity > 0) ?? [],
         })));
+      }
+
+      if (c.ok) {
+        const cv = (await c.json()) as Customer[];
+        setCustomers(cv);
+        if (cv.length > 0) setCustomerId(cv[0].id);
       }
     });
   }, []);
@@ -182,7 +191,11 @@ export default function OutgoingGoods() {
   };
 
   const submit = async () => {
-    if (!product || !warehouseId || !lotId || !isWeightValid) return;
+    if (!product || !warehouseId || !customerId || !lotId || !isWeightValid) {
+      setMessageType('error');
+      setMessage('انتخاب مشتری برای ثبت خروج کالا الزامی است.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -195,6 +208,7 @@ export default function OutgoingGoods() {
           weight: Number(weight),
           productId: product.id,
           warehouseId,
+          customerId,
           lotId,
         }),
       });
@@ -368,17 +382,37 @@ export default function OutgoingGoods() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground mr-1">انبار خروجی</label>
-              <select
-                className="w-full border border-border rounded-xl p-2 bg-background"
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-              >
+        <select
+          className="w-full border border-border rounded-xl p-2 bg-background"
+          value={warehouseId}
+          onChange={(e) => setWarehouseId(e.target.value)}
+        >
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name}
                   </option>
                 ))}
-              </select>
+        </select>
+
+        <div className="space-y-1">
+          <label className="text-sm text-muted-foreground">مشتری</label>
+          <select
+            className="w-full border border-border rounded-xl p-2 bg-background"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+          >
+            <option value="">انتخاب مشتری (الزامی)</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+                {customer.phone ? ` - ${customer.phone}` : customer.email ? ` - ${customer.email}` : ''}
+              </option>
+            ))}
+          </select>
+          {!customerId && (
+            <p className="text-xs text-destructive">برای تکمیل عملیات خروج، انتخاب مشتری الزامی است.</p>
+          )}
+        </div>
             </div>
 
             <div className="space-y-1">
