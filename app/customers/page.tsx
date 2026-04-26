@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   CheckCircle2,
@@ -48,6 +49,7 @@ const initialForm = {
 };
 
 export default function CustomersPage() {
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
@@ -140,7 +142,7 @@ export default function CustomersPage() {
     setPreferredCustomerId(customerId);
     fetchCustomers(undefined, customerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedCustomer?.id) {
