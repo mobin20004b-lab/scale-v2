@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Loader2, QrCode, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Search } from 'lucide-react';
+import { QrCameraScanner } from '@/components/qr-camera-scanner';
 
 type LotSummary = {
   id: string;
@@ -77,78 +78,14 @@ export default function OutgoingGoods() {
     });
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const initialBarcode = new URLSearchParams(window.location.search).get('barcode');
-    if (initialBarcode) {
-      setBarcode(initialBarcode);
-      void resolveBarcode(initialBarcode);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!scannerOpen) return;
-
-    let scanner: {
-      render: (
-        onSuccess: (decodedText: string) => void,
-        onError?: (errorMessage: string, error?: unknown) => void,
-      ) => void;
-      clear: () => Promise<void>;
-    } | null = null;
-    let mounted = true;
-
-    const setupScanner = async () => {
-      try {
-        const { Html5QrcodeScanner } = await import('html5-qrcode');
-        if (!mounted) return;
-
-        scanner = new Html5QrcodeScanner(
-          'outgoing-qr-reader',
-          {
-            fps: 10,
-            qrbox: { width: 220, height: 220 },
-            rememberLastUsedCamera: true,
-          },
-          false,
-        );
-
-        scanner.render(
-          (decodedText) => {
-            setBarcode(decodedText);
-            setScannerOpen(false);
-            setMessageType('info');
-            setMessage('کد با موفقیت اسکن شد. اطلاعات خروج به‌صورت خودکار تکمیل شد.');
-            void resolveBarcode(decodedText);
-          },
-          () => undefined,
-        );
-      } catch {
-        setMessageType('error');
-        setMessage('دسترسی به دوربین یا اسکنر ممکن نیست.');
-      }
-    };
-
-    setupScanner();
-
-    return () => {
-      mounted = false;
-      if (scanner) {
-        scanner.clear().catch(() => undefined);
-      }
-    };
-  }, [scannerOpen]);
-
-  const resetOutgoingForm = () => {
+  const resetOutgoingForm = useCallback(() => {
     setProduct(null);
     setLotId('');
     setWeight('');
     setShowSuccessState(false);
-  };
+  }, []);
 
-  const resolveBarcode = async (rawBarcode?: string) => {
+  const resolveBarcode = useCallback(async (rawBarcode?: string) => {
     const nextBarcode = (rawBarcode ?? barcode).trim();
 
     if (!nextBarcode) {
@@ -188,7 +125,30 @@ export default function OutgoingGoods() {
     } finally {
       setIsResolvingBarcode(false);
     }
-  };
+  }, [barcode, resetOutgoingForm]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const initialBarcode = new URLSearchParams(window.location.search).get('barcode');
+    if (initialBarcode) {
+      setBarcode(initialBarcode);
+      void resolveBarcode(initialBarcode);
+    }
+  }, [resolveBarcode]);
+
+  const handleScannerDetected = useCallback((decodedText: string) => {
+    setBarcode(decodedText);
+    setScannerOpen(false);
+    setMessageType('info');
+    setMessage('کد با موفقیت اسکن شد. اطلاعات خروج به‌صورت خودکار تکمیل شد.');
+    void resolveBarcode(decodedText);
+  }, [resolveBarcode]);
+
+  const handleScannerError = useCallback((errorMessage: string) => {
+    setMessageType('error');
+    setMessage(errorMessage);
+  }, []);
 
   const submit = async () => {
     if (!product || !warehouseId || !customerId || !lotId || !isWeightValid) {
@@ -279,21 +239,14 @@ export default function OutgoingGoods() {
             {isResolvingBarcode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             جستجو
           </button>
-          <button
-            onClick={() => setScannerOpen((prev) => !prev)}
-            className="bg-primary text-primary-foreground rounded-xl px-4 py-2 flex items-center justify-center gap-2"
-          >
-            {scannerOpen ? <XCircle className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
-            {scannerOpen ? 'بستن اسکنر' : 'اسکن QR'}
-          </button>
+          <QrCameraScanner
+            isOpen={scannerOpen}
+            isBusy={isResolvingBarcode}
+            onToggle={() => setScannerOpen((prev) => !prev)}
+            onDetected={handleScannerDetected}
+            onSetupError={handleScannerError}
+          />
         </div>
-
-        {scannerOpen && (
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-xs text-muted-foreground mb-2">QR یا بارکد لات را مقابل دوربین بگیرید.</p>
-            <div id="outgoing-qr-reader" className="min-h-[280px]" dir="ltr" />
-          </div>
-        )}
 
         <div className="border-t border-border pt-3 space-y-2">
           <p className="text-sm font-medium">انتخاب دستی کالا برای خروج</p>
