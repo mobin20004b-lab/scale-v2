@@ -53,6 +53,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
+  const [preferredCustomerId, setPreferredCustomerId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [customerFilter, setCustomerFilter] = useState<'all' | 'with-orders' | 'without-orders'>('all');
@@ -85,7 +86,7 @@ export default function CustomersPage() {
     setTimeout(() => setSuccess(''), 3500);
   };
 
-  const fetchCustomers = async (searchValue?: string) => {
+  const fetchCustomers = async (searchValue?: string, targetCustomerId?: string | null) => {
     setIsCustomersLoading(true);
     try {
       const term = searchValue ?? search;
@@ -97,9 +98,9 @@ export default function CustomersPage() {
       const data = await res.json();
       setCustomers(data);
 
-      const preferredCustomerId = searchParams.get('customerId');
-      if (preferredCustomerId) {
-        const byQuery = data.find((item: Customer) => item.id === preferredCustomerId) ?? null;
+      const queryCustomerId = targetCustomerId ?? preferredCustomerId;
+      if (queryCustomerId) {
+        const byQuery = data.find((item: Customer) => item.id === queryCustomerId) ?? null;
         setSelectedCustomer(byQuery);
       } else if (selectedCustomer) {
         const refreshed = data.find((item: Customer) => item.id === selectedCustomer.id) ?? null;
@@ -136,7 +137,10 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    fetchCustomers();
+    if (typeof window === 'undefined') return;
+    const customerId = new URLSearchParams(window.location.search).get('customerId');
+    setPreferredCustomerId(customerId);
+    fetchCustomers(undefined, customerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
