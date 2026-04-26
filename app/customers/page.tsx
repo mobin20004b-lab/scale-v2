@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
-  Eye,
   Loader2,
   Pencil,
   Plus,
@@ -52,6 +51,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
+  const [preferredCustomerId, setPreferredCustomerId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [customerFilter, setCustomerFilter] = useState<'all' | 'with-orders' | 'without-orders'>('all');
@@ -68,6 +68,7 @@ export default function CustomersPage() {
   const [isCustomersLoading, setIsCustomersLoading] = useState(true);
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -83,7 +84,7 @@ export default function CustomersPage() {
     setTimeout(() => setSuccess(''), 3500);
   };
 
-  const fetchCustomers = async (searchValue?: string) => {
+  const fetchCustomers = async (searchValue?: string, targetCustomerId?: string | null) => {
     setIsCustomersLoading(true);
     try {
       const term = searchValue ?? search;
@@ -95,7 +96,11 @@ export default function CustomersPage() {
       const data = await res.json();
       setCustomers(data);
 
-      if (selectedCustomer) {
+      const queryCustomerId = targetCustomerId ?? preferredCustomerId;
+      if (queryCustomerId) {
+        const byQuery = data.find((item: Customer) => item.id === queryCustomerId) ?? null;
+        setSelectedCustomer(byQuery);
+      } else if (selectedCustomer) {
         const refreshed = data.find((item: Customer) => item.id === selectedCustomer.id) ?? null;
         setSelectedCustomer(refreshed);
       }
@@ -130,7 +135,10 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    fetchCustomers();
+    if (typeof window === 'undefined') return;
+    const customerId = new URLSearchParams(window.location.search).get('customerId');
+    setPreferredCustomerId(customerId);
+    fetchCustomers(undefined, customerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -216,6 +224,35 @@ export default function CustomersPage() {
   const resetForm = () => {
     setEditingCustomer(null);
     setForm(initialForm);
+  };
+
+  const updateOrderStatus = async (
+    orderId: string,
+    nextValues: { status?: string; paymentStatus?: string },
+  ) => {
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await fetch(`/api/customers/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextValues),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update order');
+      }
+
+      setCustomerOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, ...nextValues } : order,
+        ),
+      );
+      showTemporaryMessage('success', 'وضعیت سفارش با موفقیت بروزرسانی شد.');
+    } catch {
+      showTemporaryMessage('error', 'بروزرسانی وضعیت سفارش ناموفق بود.');
+    } finally {
+      setUpdatingOrderId(null);
+    }
   };
 
   return (
@@ -309,7 +346,13 @@ export default function CustomersPage() {
                     {filteredCustomers.map((customer) => (
                       <tr key={customer.id} className="border-t border-border">
                         <td className="px-4 py-3">
-                          <div className="font-medium text-foreground">{customer.name}</div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCustomer(customer)}
+                            className="font-medium text-foreground hover:text-primary hover:underline"
+                          >
+                            {customer.name}
+                          </button>
                           <div className="text-xs text-muted-foreground mt-1">{customer.address || '—'}</div>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
@@ -320,14 +363,6 @@ export default function CustomersPage() {
                         <td className="px-4 py-3 text-muted-foreground">{customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleString('fa-IR') : '—'}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedCustomer(customer)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 hover:bg-secondary"
-                            >
-                              <Eye className="h-4 w-4" />
-                              مشاهده
-                            </button>
                             <button
                               type="button"
                               onClick={() => startEdit(customer)}
@@ -503,9 +538,31 @@ export default function CustomersPage() {
                       <p className="text-sm text-muted-foreground">تاریخ سفارش</p>
                       <p className="font-medium">{new Date(order.orderDate).toLocaleString('fa-IR')}</p>
                     </div>
-                    <div className="flex gap-2 text-xs">
-                      <span className="rounded-full bg-blue-500/10 px-2 py-1 text-blue-600">{order.status}</span>
-                      <span className="rounded-full bg-amber-500/10 px-2 py-1 text-amber-600">{order.paymentStatus}</span>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <select
+                        className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-1 text-blue-700"
+                        value={order.status}
+                        disabled={updatingOrderId === order.id}
+                        onChange={(event) => updateOrderStatus(order.id, { status: event.target.value })}
+                      >
+                        <option value="PENDING">PENDING</option>
+                        <option value="CONFIRMED">CONFIRMED</option>
+                        <option value="SHIPPED">SHIPPED</option>
+                        <option value="DELIVERED">DELIVERED</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
+                      <select
+                        className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-700"
+                        value={order.paymentStatus}
+                        disabled={updatingOrderId === order.id}
+                        onChange={(event) => updateOrderStatus(order.id, { paymentStatus: event.target.value })}
+                      >
+                        <option value="UNPAID">UNPAID</option>
+                        <option value="PARTIAL">PARTIAL</option>
+                        <option value="PAID">PAID</option>
+                        <option value="FAILED">FAILED</option>
+                      </select>
+                      {updatingOrderId === order.id && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                     </div>
                   </div>
 
