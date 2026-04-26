@@ -127,7 +127,6 @@ export async function POST(request: Request) {
       const order = await prisma.customerOrder.create({
         data: {
           customerId: data.customerId,
-          ledgerId: ledger.id,
           orderDate: new Date(),
           status: data.orderStatus || 'PENDING',
           paymentStatus: data.paymentStatus || 'UNPAID',
