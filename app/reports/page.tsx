@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Calendar, Search, ArrowDownToLine, ArrowUpFromLine, Package2, Warehouse } from 'lucide-react';
 
 type InventoryRow = {
@@ -11,6 +12,9 @@ type InventoryRow = {
   createdAt: string;
   product: { name: string };
   warehouse: { name: string };
+  customer: { id: string; name: string } | null;
+  customerOrder: { status: string; paymentStatus: string } | null;
+  operatorName: string;
 };
 
 const PAGE_SIZE = 10;
@@ -71,6 +75,8 @@ export default function ReportsPage() {
         !normalizedSearch ||
         row.product.name.toLowerCase().includes(normalizedSearch) ||
         row.warehouse.name.toLowerCase().includes(normalizedSearch) ||
+        row.customer?.name.toLowerCase().includes(normalizedSearch) ||
+        row.operatorName.toLowerCase().includes(normalizedSearch) ||
         typeLabel[row.type].toLowerCase().includes(normalizedSearch);
 
       return isMatchingType && isMatchingText;
@@ -151,26 +157,29 @@ export default function ReportsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead className="bg-secondary/30 text-muted-foreground">
               <tr>
                 <th className="text-right p-3">تاریخ</th>
                 <th className="text-right p-3">نوع عملیات</th>
                 <th className="text-right p-3">کالا</th>
                 <th className="text-right p-3">انبار</th>
+                <th className="text-right p-3">مشتری</th>
+                <th className="text-right p-3">اپراتور</th>
+                <th className="text-right p-3">وضعیت سفارش/پرداخت</th>
                 <th className="text-right p-3">مقدار</th>
               </tr>
             </thead>
             <tbody>
               {!isLoading && pagedRows.length === 0 && (
                 <tr>
-                  <td className="p-6 text-center text-muted-foreground" colSpan={5}>نتیجه‌ای پیدا نشد.</td>
+                  <td className="p-6 text-center text-muted-foreground" colSpan={8}>نتیجه‌ای پیدا نشد.</td>
                 </tr>
               )}
 
               {isLoading && (
                 <tr>
-                  <td className="p-6 text-center text-muted-foreground" colSpan={5}>در حال بارگذاری...</td>
+                  <td className="p-6 text-center text-muted-foreground" colSpan={8}>در حال بارگذاری...</td>
                 </tr>
               )}
 
@@ -188,6 +197,26 @@ export default function ReportsPage() {
                       <Warehouse className="w-3.5 h-3.5" />
                       {row.warehouse.name}
                     </span>
+                  </td>
+                  <td className="p-3">
+                    {row.customer ? (
+                      <Link className="text-primary hover:underline font-medium" href={`/customers?customerId=${row.customer.id}`}>
+                        {row.customer.name}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="p-3">{row.operatorName || '—'}</td>
+                  <td className="p-3">
+                    {row.customerOrder ? (
+                      <div className="flex flex-wrap gap-1 text-xs">
+                        <span className="rounded-full bg-blue-500/10 text-blue-700 px-2 py-1">{row.customerOrder.status}</span>
+                        <span className="rounded-full bg-amber-500/10 text-amber-700 px-2 py-1">{row.customerOrder.paymentStatus}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="p-3 font-medium" dir="ltr">{(row.weight ?? row.quantity).toFixed(2)} kg</td>
                 </tr>
