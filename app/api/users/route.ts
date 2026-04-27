@@ -9,8 +9,13 @@ const allowedRoles = new Set<string>(Object.values(UserRole));
 const allowedStatuses = new Set<string>(Object.values(UserStatus));
 
 function getActorId(session: Awaited<ReturnType<typeof getServerSession>>) {
-  const user = session?.user as { id?: string } | undefined;
-  return user?.id ?? null;
+  if (!session || typeof session !== 'object' || !("user" in session)) return null;
+
+  const user = session.user;
+  if (!user || typeof user !== 'object' || !("id" in user)) return null;
+
+  const id = user.id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
 export async function GET(request: NextRequest) {
