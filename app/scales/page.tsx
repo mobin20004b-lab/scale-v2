@@ -39,6 +39,7 @@ export default function ScalesPage() {
   const [name, setName] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [model, setModel] = useState('ESP32-WROOM-32');
+  const [newScaleUnit, setNewScaleUnit] = useState('kg');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,6 +48,8 @@ export default function ScalesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('all');
   const [visibleTokenId, setVisibleTokenId] = useState<string | null>(null);
+  const [unitDraftById, setUnitDraftById] = useState<Record<string, string>>({});
+  const [updatingUnitId, setUpdatingUnitId] = useState<string | null>(null);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -80,6 +83,9 @@ export default function ScalesPage() {
       ]);
 
       setScales(scalesData);
+      setUnitDraftById(
+        Object.fromEntries(scalesData.map((scale) => [scale.id, scale.unit || 'kg']))
+      );
       setWarehouses(warehouseData);
       if (!warehouseId) setWarehouseId(warehouseData[0]?.id ?? '');
     } catch (err) {
@@ -116,7 +122,7 @@ export default function ScalesPage() {
           model: model.trim(),
           warehouseId,
           apiKey: token,
-          unit: 'kg',
+          unit: newScaleUnit,
           precision: 2,
           heartbeat: 30,
         }),
@@ -129,6 +135,7 @@ export default function ScalesPage() {
 
       setName('');
       setModel('ESP32-WROOM-32');
+      setNewScaleUnit('kg');
       await load();
       showTemporaryMessage('success', 'ترازوی جدید با موفقیت ایجاد شد.');
     } catch (err) {
@@ -160,6 +167,33 @@ export default function ScalesPage() {
       showTemporaryMessage('error', 'خطای شبکه در تولید مجدد توکن.');
     } finally {
       setRotatingId(null);
+    }
+  };
+
+  const updateScaleUnit = async (id: string) => {
+    const nextUnit = unitDraftById[id];
+    if (!nextUnit) return;
+
+    setUpdatingUnitId(id);
+    try {
+      const res = await fetch(`/api/scales/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ unit: nextUnit }),
+      });
+
+      if (!res.ok) {
+        showTemporaryMessage('error', 'بروزرسانی واحد ترازو انجام نشد.');
+        return;
+      }
+
+      await load();
+      showTemporaryMessage('success', 'واحد ترازو با موفقیت بروزرسانی شد.');
+    } catch (err) {
+      console.error('Failed to update scale unit', err);
+      showTemporaryMessage('error', 'خطای شبکه در بروزرسانی واحد ترازو.');
+    } finally {
+      setUpdatingUnitId(null);
     }
   };
 
@@ -244,7 +278,7 @@ export default function ScalesPage() {
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Plus className="w-5 h-5 text-primary" /> افزودن ترازو
         </div>
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid md:grid-cols-4 gap-3">
           <input
             className="border border-border rounded-xl p-2.5 bg-background"
             placeholder="نام ترازو"
@@ -268,6 +302,14 @@ export default function ScalesPage() {
                 {w.name}
               </option>
             ))}
+          </select>
+          <select
+            className="border border-border rounded-xl p-2.5 bg-background"
+            value={newScaleUnit}
+            onChange={(e) => setNewScaleUnit(e.target.value)}
+          >
+            <option value="kg">kg</option>
+            <option value="g">g</option>
           </select>
         </div>
         <button
@@ -308,7 +350,8 @@ export default function ScalesPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         {filteredScales.map((scale) => {
-          const curlCommand = `curl -X POST $BASE/api/v1/scales/any-id/weight \\\n  -H \"Authorization: Bearer ${scale.apiKey}\" \\\n  -H \"Content-Type: text/plain\" \\\n  -d '1500'`;
+          const sampleWeight = scale.unit === 'kg' ? '55.29' : '55290';
+          const curlCommand = `curl -X POST $BASE/api/v1/scales/any-id/weight \\\n  -H \"Authorization: Bearer ${scale.apiKey}\" \\\n  -H \"Content-Type: text/plain\" \\\n  -d '${sampleWeight}'`;
 
           return (
             <div key={scale.id} className="bg-card border border-border rounded-2xl p-4 space-y-3 shadow-sm">
@@ -323,6 +366,29 @@ export default function ScalesPage() {
               </div>
 
               <div className="rounded-xl border border-border bg-background p-3 space-y-2">
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">واحد وزن ترازو</p>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="text-xs rounded-lg border border-border bg-background px-2.5 py-1.5"
+                      value={unitDraftById[scale.id] ?? scale.unit}
+                      onChange={(e) =>
+                        setUnitDraftById((prev) => ({ ...prev, [scale.id]: e.target.value }))
+                      }
+                    >
+                      <option value="kg">kg</option>
+                      <option value="g">g</option>
+                    </select>
+                    <button
+                      onClick={() => updateScaleUnit(scale.id)}
+                      disabled={updatingUnitId === scale.id || (unitDraftById[scale.id] ?? scale.unit) === scale.unit}
+                      className="text-xs rounded-lg border border-border px-2.5 py-1.5 hover:bg-accent disabled:opacity-50"
+                    >
+                      {updatingUnitId === scale.id ? 'در حال ذخیره...' : 'ذخیره واحد'}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs text-muted-foreground">API Token</p>
                   <button

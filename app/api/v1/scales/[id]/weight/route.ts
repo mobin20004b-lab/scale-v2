@@ -23,29 +23,38 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid API Key' }, { status: 401 });
     }
 
-    let weightInGrams: number;
+    let incomingWeight: number;
+    let incomingUnit: string | undefined;
     let uptime: number | undefined;
 
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
       const body = await request.json();
-      weightInGrams = Number(body.weight);
+      incomingWeight = Number(body.weight);
+      incomingUnit = typeof body.unit === 'string' ? body.unit : undefined;
       uptime = body.uptime;
     } else {
-      // Assume raw text containing just a number (grams)
+      // For plain text payloads, default to the scale configured unit.
+      // Example: if unit is kg and payload is 55.29, store 55.29 (not 0.05529).
       const text = await request.text();
-      weightInGrams = Number(text.trim());
+      incomingWeight = Number(text.trim());
+      incomingUnit = scale.unit;
     }
 
-    if (isNaN(weightInGrams)) {
+    if (isNaN(incomingWeight)) {
       return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 });
     }
 
-    // Convert grams to the scale's configured unit (assuming mostly kg)
-    let currentWeight = weightInGrams;
-    if (scale.unit === 'kg') {
-      currentWeight = weightInGrams / 1000;
+    const normalizedUnit = (incomingUnit || scale.unit || '').toLowerCase();
+
+    // Store the weight in the scale's configured unit.
+    let currentWeight = incomingWeight;
+
+    if (scale.unit === 'kg' && normalizedUnit === 'g') {
+      currentWeight = incomingWeight / 1000;
+    } else if (scale.unit === 'g' && normalizedUnit === 'kg') {
+      currentWeight = incomingWeight * 1000;
     }
 
     await prisma.scale.update({
