@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Filter, KeyRound, Plus, RefreshCw, Search, UserRound } from 'lucide-react';
+import { Edit, Filter, KeyRound, Plus, RefreshCw, Search, UserRound } from 'lucide-react';
 import {
   Modal,
   ModalContent,
@@ -57,6 +57,14 @@ const initialForm = {
   role: 'WAREHOUSE_OPERATOR',
 };
 
+const initialEditForm = {
+  name: '',
+  email: '',
+  username: '',
+  role: 'WAREHOUSE_OPERATOR',
+  status: 'ACTIVE',
+};
+
 const roleLabels: Record<string, string> = {
   CEO: 'مدیرعامل',
   WAREHOUSE_MANAGER: 'مدیر انبار',
@@ -78,6 +86,10 @@ export default function UsersPage() {
   const [form, setForm] = useState(initialForm);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editForm, setEditForm] = useState(initialEditForm);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [metrics, setMetrics] = useState<UserMetrics | null>(null);
@@ -184,6 +196,46 @@ export default function UsersPage() {
     }
   };
 
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      status: user.status,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const onEditSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingUser) return;
+
+    setIsEditSubmitting(true);
+    try {
+      const res = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || 'بروزرسانی کاربر ناموفق بود.');
+      }
+
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      showMessage('success', 'اطلاعات کاربر با موفقیت بروزرسانی شد.');
+      loadUsers();
+    } catch (error) {
+      showMessage('error', error instanceof Error ? error.message : 'بروزرسانی کاربر ناموفق بود.');
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
   const filteredCountLabel = useMemo(() => `${users.length} کاربر`, [users.length]);
 
   return (
@@ -285,6 +337,13 @@ export default function UsersPage() {
                     <td className="p-3">
                       <div className="flex flex-wrap gap-2">
                         <button
+                          onClick={() => openEditDialog(u)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                          ویرایش
+                        </button>
+                        <button
                           onClick={() => openMetrics(u)}
                           className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs"
                         >
@@ -329,6 +388,34 @@ export default function UsersPage() {
             </select>
             <button disabled={isSubmitting} className="w-full rounded-xl bg-primary py-2 text-primary-foreground">
               {isSubmitting ? 'در حال ایجاد...' : 'ایجاد کاربر'}
+            </button>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      <Modal open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <ModalContent>
+          <ModalHeader>
+            <ModalTitle>ویرایش کاربر</ModalTitle>
+            <ModalDescription>تمام اطلاعات کاربر انتخاب شده را ویرایش و ذخیره کنید.</ModalDescription>
+          </ModalHeader>
+
+          <form onSubmit={onEditSubmit} className="space-y-3">
+            <input required className="w-full rounded-xl border border-border bg-background p-2" placeholder="نام" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            <input required className="w-full rounded-xl border border-border bg-background p-2" placeholder="نام کاربری" dir="ltr" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} />
+            <input required className="w-full rounded-xl border border-border bg-background p-2" placeholder="ایمیل" dir="ltr" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            <select className="w-full rounded-xl border border-border bg-background p-2" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}>
+              <option value="CEO">مدیرعامل</option>
+              <option value="WAREHOUSE_MANAGER">مدیر انبار</option>
+              <option value="WAREHOUSE_OPERATOR">اپراتور</option>
+              <option value="ADMIN">ادمین</option>
+            </select>
+            <select className="w-full rounded-xl border border-border bg-background p-2" value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
+              <option value="ACTIVE">فعال</option>
+              <option value="INACTIVE">غیرفعال</option>
+            </select>
+            <button disabled={isEditSubmitting} className="w-full rounded-xl bg-primary py-2 text-primary-foreground">
+              {isEditSubmitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
             </button>
           </form>
         </ModalContent>
