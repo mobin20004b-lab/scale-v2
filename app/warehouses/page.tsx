@@ -17,6 +17,7 @@ export default function WarehousesPage() {
   const [location, setLocation] = useState('');
   const [managerName, setManagerName] = useState('');
   const [capacityKg, setCapacityKg] = useState('0');
+  const [isSaving, setIsSaving] = useState(false);
 
   const load = async () => {
     const res = await fetch('/api/warehouses');
@@ -26,16 +27,22 @@ export default function WarehousesPage() {
   useEffect(() => { load(); }, []);
 
   const createWarehouse = async () => {
-    await fetch('/api/warehouses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, location, managerName, capacityKg: Number(capacityKg) }),
-    });
-    setName('');
-    setLocation('');
-    setManagerName('');
-    setCapacityKg('0');
-    load();
+    if (!name.trim()) return;
+    setIsSaving(true);
+    try {
+      await fetch('/api/warehouses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, location, managerName, capacityKg: Number(capacityKg) }),
+      });
+      setName('');
+      setLocation('');
+      setManagerName('');
+      setCapacityKg('0');
+      load();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -47,7 +54,27 @@ export default function WarehousesPage() {
         <input className="border border-border rounded-xl p-2 bg-background" placeholder="موقعیت" value={location} onChange={(e) => setLocation(e.target.value)} />
         <input className="border border-border rounded-xl p-2 bg-background" placeholder="مسئول" value={managerName} onChange={(e) => setManagerName(e.target.value)} />
         <input className="border border-border rounded-xl p-2 bg-background" placeholder="ظرفیت(کیلو)" value={capacityKg} onChange={(e) => setCapacityKg(e.target.value)} />
-        <button onClick={createWarehouse} className="md:col-span-4 bg-primary text-primary-foreground rounded-xl py-2">افزودن انبار</button>
+        <div className="md:col-span-4 flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={createWarehouse}
+            disabled={isSaving || !name.trim()}
+            className="flex-1 bg-primary text-primary-foreground rounded-xl py-2 disabled:opacity-50"
+          >
+            {isSaving ? 'در حال ذخیره...' : 'ذخیره انبار'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setName('');
+              setLocation('');
+              setManagerName('');
+              setCapacityKg('0');
+            }}
+            className="sm:w-auto border border-border rounded-xl px-4 py-2"
+          >
+            پاک کردن فرم
+          </button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
