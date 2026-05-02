@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, Menu, X } from 'lucide-react';
+import { ChevronLeft, Menu, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import CommandPalette from '@/components/CommandPalette';
+import UserPanel from '@/components/UserPanel';
 import { navItems, quickActionsByPath } from '@/lib/navigation';
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
@@ -135,12 +136,20 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               })}
             </div>
             <CommandPalette />
+            <Link
+              href="/reports"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              گزارش سریع
+            </Link>
             <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              سیستم آنلاین است
+              <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
+                <div className="w-2 h-2 rounded-full bg-primary" />
+                سیستم آنلاین است
+              </div>
+              <UserPanel />
             </div>
-          </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground ml-1">اقدامات سریع:</span>
