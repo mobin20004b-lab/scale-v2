@@ -1,4 +1,7 @@
+import { assertExternalApiKeyConfigForStartup } from './lib/external-api-auth';
 import type {NextConfig} from 'next';
+
+assertExternalApiKeyConfigForStartup();
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
