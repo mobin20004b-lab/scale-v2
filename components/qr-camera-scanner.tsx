@@ -100,7 +100,7 @@ export function QrCameraScanner({
           });
       }
     };
-  }, [isOpen, onDetected, onSetupError, selectedCameraId]);
+  }, [isOpen, onDetected, onSetupError]);
 
   const statusText = useMemo(() => {
     if (isBusy) return 'در حال پردازش اطلاعات اسکن...';
