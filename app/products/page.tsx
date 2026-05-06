@@ -36,6 +36,10 @@ interface Product {
   barcode: string;
   category: string | null;
   unit: string;
+  spoolsPerBag?: number;
+  spoolWeight?: number;
+  bagWeight?: number;
+  brandName?: string | null;
   lots?: Lot[];
 }
 
@@ -50,6 +54,10 @@ export default function ProductsManagement() {
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('');
   const [unit, setUnit] = useState('kg');
+  const [spoolsPerBag, setSpoolsPerBag] = useState('12');
+  const [spoolWeight, setSpoolWeight] = useState('0');
+  const [bagWeight, setBagWeight] = useState('0');
+  const [brandName, setBrandName] = useState('نساجی زمرد');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
@@ -89,7 +97,7 @@ export default function ProductsManagement() {
       return;
     }
 
-    const payload = { name, description, barcode, category, unit };
+    const payload = { name, description, barcode, category, unit, spoolsPerBag: Number(spoolsPerBag || 12), spoolWeight: Number(spoolWeight || 0), bagWeight: Number(bagWeight || 0), brandName };
 
     try {
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
@@ -108,6 +116,14 @@ export default function ProductsManagement() {
         setBarcode('');
         setCategory('');
         setUnit('kg');
+    setSpoolsPerBag('12');
+    setSpoolWeight('0');
+    setBagWeight('0');
+    setBrandName('نساجی زمرد');
+        setSpoolsPerBag('12');
+        setSpoolWeight('0');
+        setBagWeight('0');
+        setBrandName('نساجی زمرد');
         setIsAdding(false);
         setEditingProduct(null);
         fetchProducts();
@@ -142,6 +158,10 @@ export default function ProductsManagement() {
     setBarcode(product.barcode);
     setCategory(product.category || '');
     setUnit(product.unit);
+    setSpoolsPerBag(String(product.spoolsPerBag ?? 12));
+    setSpoolWeight(String(product.spoolWeight ?? 0));
+    setBagWeight(String(product.bagWeight ?? 0));
+    setBrandName(product.brandName || 'نساجی زمرد');
     setIsAdding(true);
   };
 
@@ -153,6 +173,10 @@ export default function ProductsManagement() {
     setBarcode('');
     setCategory('');
     setUnit('kg');
+    setSpoolsPerBag('12');
+    setSpoolWeight('0');
+    setBagWeight('0');
+    setBrandName('نساجی زمرد');
   };
 
   const startEditLot = (lot: Lot, product: Product) => {

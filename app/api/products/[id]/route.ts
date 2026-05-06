@@ -40,6 +40,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         barcode: data.barcode,
         category: data.category,
         unit: data.unit,
+        spoolsPerBag: Number(data.spoolsPerBag ?? 12),
+        spoolWeight: Number(data.spoolWeight ?? 0),
+        bagWeight: Number(data.bagWeight ?? 0),
+        brandName: data.brandName || 'نساجی زمرد',
       }
     });
 

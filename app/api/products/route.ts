@@ -39,6 +39,10 @@ export async function POST(request: Request) {
         unit: data.unit,
         qrCode: data.qrCode || `QR-${data.barcode}`,
         nameFa: data.nameFa || data.name,
+        spoolsPerBag: Number(data.spoolsPerBag ?? 12),
+        spoolWeight: Number(data.spoolWeight ?? 0),
+        bagWeight: Number(data.bagWeight ?? 0),
+        brandName: data.brandName || 'نساجی زمرد',
       }
     });
 

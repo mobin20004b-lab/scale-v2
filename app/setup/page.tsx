@@ -9,7 +9,7 @@ import { Button, Card, FormField, Input, Toast } from '@/components/ui';
 export default function SetupPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    companyName: 'گرین‌استاک',
+    companyName: 'نساجی زمرد',
     name: '',
     username: '',
     email: '',

@@ -33,6 +33,10 @@ model Product {
   qrCode        String            @unique
   category      String?
   unit          String            @default("kg")
+  spoolsPerBag  Int               @default(12)
+  spoolWeight   Float             @default(0)
+  bagWeight     Float             @default(0)
+  brandName     String?           @default("نساجی زمرد")
   isDeleted     Boolean           @default(false)
   deletedAt     DateTime?
   createdAt     DateTime          @default(now())
