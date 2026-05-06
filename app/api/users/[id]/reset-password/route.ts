@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireAnyRole } from '@/lib/authz';
 
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAnyRole(['ADMIN', 'CEO'], { route: '/api/users/[id]/reset-password', action: 'RESET_PASSWORD' });
+  if (!auth.authorized) return auth.response!;
 
   const { id } = await context.params;
   const data = await request.json();
@@ -29,7 +28,7 @@ export async function POST(
 
   await prisma.activityLog.create({
     data: {
-      actorId: ((session.user as { id?: string })?.id ?? null) as string | null,
+      actorId: auth.session?.user?.id ?? null,
       action: 'RESET_PASSWORD',
       entityType: 'USER',
       entityId: id,
