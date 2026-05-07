@@ -24,6 +24,9 @@ ENV NPM_CONFIG_REGISTRY=https://npm.devneeds.ir/
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
+ARG EXTERNAL_API_KEY
+ENV EXTERNAL_API_KEY=$EXTERNAL_API_KEY
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 COPY prisma/bins/schema-engine-linux-musl-openssl-3.0.x /app/node_modules/@prisma/engines/schema-engine-linux-musl-openssl-3.0.x
