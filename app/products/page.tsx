@@ -336,6 +336,48 @@ export default function ProductsManagement() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">نام تجاری روی فاکتور</label>
+              <input
+                type="text"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                placeholder="مثال: نساجی زنبق"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">تعداد دوک در بسته</label>
+              <input
+                type="number"
+                min="1"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={spoolsPerBag}
+                onChange={(e) => setSpoolsPerBag(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">وزن هر دوک</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={spoolWeight}
+                onChange={(e) => setSpoolWeight(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">وزن کیسه/گونی خالی</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={bagWeight}
+                onChange={(e) => setBagWeight(e.target.value)}
+              />
+            </div>
           </div>
           <div className="flex gap-2 justify-end mt-4">
             <button onClick={cancelEdit} className="px-4 py-2 rounded-xl font-medium text-muted-foreground hover:bg-secondary transition-colors">

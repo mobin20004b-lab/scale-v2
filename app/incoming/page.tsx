@@ -5,8 +5,17 @@ import Barcode from 'react-barcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { AlertCircle, CheckCircle2, Loader2, Printer, RefreshCcw } from 'lucide-react';
 import { openLabelPrintWindow } from '@/lib/label-print';
+import { calculateNetWeight } from '@/lib/net-weight';
 
-type Product = { id: string; name: string; unit: string };
+type Product = {
+  id: string;
+  name: string;
+  unit: string;
+  spoolsPerBag?: number;
+  spoolWeight?: number;
+  bagWeight?: number;
+  brandName?: string | null;
+};
 type Warehouse = { id: string; name: string };
 type Scale = { id: string; name: string; currentWeight: number; signal: string };
 type LotReceipt = {
@@ -28,6 +37,9 @@ export default function IncomingGoods() {
   const [warehouseId, setWarehouseId] = useState('');
   const [scaleId, setScaleId] = useState('');
   const [weight, setWeight] = useState('');
+  const [spoolsCount, setSpoolsCount] = useState('12');
+  const [spoolWeight, setSpoolWeight] = useState('0');
+  const [bagWeight, setBagWeight] = useState('0');
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -87,12 +99,25 @@ export default function IncomingGoods() {
   const isFullPackageProduct = selectedProduct?.unit === 'box' || selectedProduct?.unit === 'pcs';
 
   useEffect(() => {
+    if (!selectedProduct) return;
+    setSpoolsCount(String(selectedProduct.spoolsPerBag ?? 12));
+    setSpoolWeight(String(selectedProduct.spoolWeight ?? 0));
+    setBagWeight(String(selectedProduct.bagWeight ?? 0));
+  }, [selectedProduct]);
+
+  useEffect(() => {
     if (!scaleId && isFullPackageProduct && weight !== '1') {
       setWeight('1');
     }
   }, [scaleId, isFullPackageProduct, weight]);
 
-  const finalWeight = Number(weight || selectedScale?.currentWeight || 0);
+  const breakdown = calculateNetWeight({
+    grossWeight: Number(weight || selectedScale?.currentWeight || 0),
+    spoolsCount: Number(spoolsCount || 0),
+    spoolWeight: Number(spoolWeight || 0),
+    bagWeight: Number(bagWeight || 0),
+  });
+  const finalWeight = breakdown.netWeight;
   const canSubmit = Boolean(productId && warehouseId && Number.isFinite(finalWeight) && finalWeight > 0 && !isSubmitting);
 
   const submit = async () => {
@@ -208,7 +233,7 @@ export default function IncomingGoods() {
           step="0.001"
           min="0"
           className="w-full border border-border rounded-xl p-2 bg-background disabled:bg-secondary/50 disabled:text-muted-foreground"
-          placeholder={isFullPackageProduct ? 'وزن برای کالای بسته‌ای ثابت است' : 'وزن دستی (اختیاری)'}
+          placeholder={isFullPackageProduct ? 'وزن برای کالای بسته‌ای ثابت است' : 'وزن ناخالص (اختیاری)'}
           value={scaleId ? selectedScale?.currentWeight || '' : weight}
           onChange={(e) => setWeight(e.target.value)}
           readOnly={!!scaleId || isFullPackageProduct}
@@ -216,6 +241,27 @@ export default function IncomingGoods() {
         />
 
         {isFullPackageProduct && !scaleId && <p className="text-xs text-muted-foreground">برای کالاهای بسته‌ای/عددی مقدار ورودی ثابت روی 1 قرار می‌گیرد.</p>}
+
+        <div className="grid md:grid-cols-3 gap-3 rounded-xl border border-border p-3 bg-secondary/20">
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">تعداد دوک</label>
+            <input type="number" min="0" className="w-full border border-border rounded-lg p-2 bg-background" value={spoolsCount} onChange={(e) => setSpoolsCount(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">وزن هر دوک</label>
+            <input type="number" step="0.001" min="0" className="w-full border border-border rounded-lg p-2 bg-background" value={spoolWeight} onChange={(e) => setSpoolWeight(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">وزن کیسه</label>
+            <input type="number" step="0.001" min="0" className="w-full border border-border rounded-lg p-2 bg-background" value={bagWeight} onChange={(e) => setBagWeight(e.target.value)} />
+          </div>
+          <div className="md:col-span-3 text-sm space-y-1">
+            <p>وزن ناخالص: <span className="font-mono">{breakdown.grossWeight}</span></p>
+            <p>کسر وزن دوک‌ها: <span className="font-mono">{breakdown.spoolsCount} × {breakdown.spoolWeight} = {breakdown.spoolsTotalWeight}</span></p>
+            <p>کسر وزن کیسه: <span className="font-mono">{breakdown.bagWeight}</span></p>
+            <p className="font-semibold text-primary">وزن خالص = {breakdown.grossWeight} - ({breakdown.spoolsCount} × {breakdown.spoolWeight}) - {breakdown.bagWeight} = {breakdown.netWeight}</p>
+          </div>
+        </div>
 
         {selectedScale && (
           <div className="text-sm text-muted-foreground">
@@ -253,7 +299,7 @@ export default function IncomingGoods() {
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-4 bg-white p-6 rounded-2xl border border-border sm:w-[10cm] sm:h-[15cm] mx-auto text-black print:w-[10cm] print:h-[15cm] print:border-none print:bg-white print:m-0 print:p-0">
-            <h1 className="text-2xl font-bold text-center">{products.find((p) => p.id === generatedLot.productId)?.name}</h1>
+            <h1 className="text-2xl font-bold text-center">{selectedProduct?.brandName ? `${selectedProduct.brandName} - ${products.find((p) => p.id === generatedLot.productId)?.name}` : products.find((p) => p.id === generatedLot.productId)?.name}</h1>
             <p className="text-xl font-medium">وزن: {generatedLot.quantity} {selectedProduct?.unit || 'kg'}</p>
             <p className="text-lg text-gray-700">
               شماره لات: <span className="font-mono">{generatedLot.lotNumber}</span>
