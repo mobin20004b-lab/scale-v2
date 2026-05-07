@@ -1,21 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import type { Session } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 
 type RoleCheckResult = {
   authorized: boolean;
   response?: NextResponse;
-  session: Awaited<ReturnType<typeof getServerSession>>;
+  session: Session | null;
 };
 
-function getActorId(session: Awaited<ReturnType<typeof getServerSession>>): string | null {
+export function getActorId(session: Session | null): string | null {
   if (!session?.user?.id || typeof session.user.id !== 'string') return null;
   return session.user.id;
 }
 
 async function logAuthorizationFailure(details: {
-  session: Awaited<ReturnType<typeof getServerSession>>;
+  session: Session | null;
   route: string;
   requiredRoles: string[];
   action: string;
@@ -76,4 +77,3 @@ export async function requireRole(
   return requireAnyRole([role], options);
 }
 
-export { getActorId };

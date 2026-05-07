@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAnyRole } from '@/lib/authz';
+import { requireAnyRole, getActorId } from '@/lib/authz';
 
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Log activity
     await prisma.activityLog.create({
       data: {
-        actorId: auth.session?.user?.id ?? null,
+        actorId: getActorId(auth.session),
         action: 'SEND_COMMAND',
         entityType: 'SCALE_COMMAND',
         entityId: command.id,

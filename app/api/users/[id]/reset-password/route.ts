@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { requireAnyRole } from '@/lib/authz';
+import { requireAnyRole, getActorId } from '@/lib/authz';
 
 export async function POST(
   request: Request,
@@ -28,7 +28,7 @@ export async function POST(
 
   await prisma.activityLog.create({
     data: {
-      actorId: auth.session?.user?.id ?? null,
+      actorId: getActorId(auth.session),
       action: 'RESET_PASSWORD',
       entityType: 'USER',
       entityId: id,
