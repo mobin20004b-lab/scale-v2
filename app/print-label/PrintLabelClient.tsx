@@ -6,23 +6,27 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Printer } from 'lucide-react';
 
 type PrintLabelClientProps = {
+  companyName?: string;
   productName: string;
   unit: string;
-  lotNumber: string;
   createdAt: string;
   barcode: string;
   qrCode: string;
   quantity: number;
+  grossWeight?: number;
+  netWeight?: number;
 };
 
 export default function PrintLabelClient({
+  companyName,
   productName,
   unit,
-  lotNumber,
   createdAt,
   barcode,
   qrCode,
   quantity,
+  grossWeight,
+  netWeight,
 }: PrintLabelClientProps) {
   useEffect(() => {
     document.body.classList.add('print-label-page');
@@ -47,23 +51,25 @@ export default function PrintLabelClient({
         </div>
 
         <div className="mx-auto flex h-[15cm] w-[10cm] flex-col items-center justify-center space-y-4 rounded-2xl border border-border bg-white p-6 text-black print:m-0 print:border-none print:p-0">
+          <h1 className="text-center text-4xl font-extrabold">{companyName || ' '}</h1>
+          <hr className="w-full border-gray-300" />
           <h1 className="text-center text-2xl font-bold">{productName}</h1>
-          <p className="text-xl font-medium">
-            وزن/تعداد: {Number.isFinite(quantity) ? quantity : 0} {unit}
+          <p className="text-2xl font-semibold">
+            وزن ناخالص: {Number.isFinite(grossWeight) ? grossWeight : Number.isFinite(quantity) ? quantity : 0} {unit}
           </p>
-          <p className="text-lg text-gray-700">
-            شماره لات: <span className="font-mono">{lotNumber}</span>
+          <p className="text-2xl font-semibold">
+            وزن خالص: {Number.isFinite(netWeight) ? netWeight : Number.isFinite(quantity) ? quantity : 0} {unit}
           </p>
-          <p className="text-sm text-gray-700" dir="ltr">
+          <p className="text-base text-gray-700" dir="ltr">
             {createdAt ? new Date(createdAt).toLocaleString('fa-IR') : '-'}
           </p>
 
-          <div className="scale-110 py-2">
-            <Barcode value={barcode} width={2} height={60} fontSize={14} displayValue />
+          <div className="scale-125 py-2">
+            <Barcode value={barcode} width={2.5} height={80} fontSize={18} displayValue />
           </div>
 
           <div className="pt-2">
-            <QRCodeSVG value={qrCode} size={120} level="M" includeMargin />
+            <QRCodeSVG value={qrCode} size={160} level="M" includeMargin />
           </div>
         </div>
       </div>

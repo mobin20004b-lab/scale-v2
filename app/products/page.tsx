@@ -69,6 +69,7 @@ export default function ProductsManagement() {
   const [isLotSaving, setIsLotSaving] = useState(false);
 
   const [receiptLot, setReceiptLot] = useState<(Lot & { productName: string; productUnit: string }) | null>(null);
+  const [companyName, setCompanyName] = useState('نساجی زمرد');
 
   const fetchProducts = async () => {
     try {
@@ -84,6 +85,15 @@ export default function ProductsManagement() {
 
   useEffect(() => {
     fetchProducts();
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setCompanyName(String(data?.settings?.companyName ?? 'نساجی زمرد'));
+        }
+      } catch {}
+    })();
   }, []);
 
   const showTemporaryMessage = (setter: React.Dispatch<React.SetStateAction<string>>, value: string) => {
@@ -615,10 +625,12 @@ export default function ProductsManagement() {
                 <button
                   onClick={() =>
                     openLabelPrintWindow({
+                      companyName,
                       productName: receiptLot.productName,
                       quantity: receiptLot.quantity,
+                      grossWeight: receiptLot.quantity,
+                      netWeight: receiptLot.quantity,
                       unit: receiptLot.productUnit,
-                      lotNumber: receiptLot.lotNumber,
                       createdAt: receiptLot.createdAt,
                       barcode: receiptLot.barcode,
                       qrCode: receiptLot.qrCode,
@@ -636,21 +648,22 @@ export default function ProductsManagement() {
             </div>
 
             <div className="flex flex-col items-center justify-center space-y-4 bg-white p-6 rounded-2xl border border-border sm:w-[10cm] sm:h-[15cm] mx-auto text-black print:w-[10cm] print:h-[15cm] print:border-none print:bg-white print:m-0 print:p-0">
+              <h1 className="text-4xl font-extrabold text-center">{companyName}</h1>
               <h1 className="text-2xl font-bold text-center">{receiptLot.productName}</h1>
-              <p className="text-xl font-medium">
-                وزن/تعداد: {receiptLot.quantity} {receiptLot.productUnit}
+              <p className="text-2xl font-semibold">
+                وزن ناخالص: {receiptLot.quantity} {receiptLot.productUnit}
               </p>
-              <p className="text-lg text-gray-700">
-                شماره لات: <span className="font-mono">{receiptLot.lotNumber}</span>
+              <p className="text-2xl font-semibold">
+                وزن خالص: {receiptLot.quantity} {receiptLot.productUnit}
               </p>
-              <p className="text-sm text-gray-700" dir="ltr">
+              <p className="text-base text-gray-700" dir="ltr">
                 {new Date(receiptLot.createdAt).toLocaleString('fa-IR')}
               </p>
-              <div className="py-2 scale-110">
-                <Barcode value={receiptLot.barcode} width={2} height={60} fontSize={14} displayValue />
+              <div className="py-2 scale-125">
+                <Barcode value={receiptLot.barcode} width={2.5} height={80} fontSize={18} displayValue />
               </div>
               <div className="pt-2">
-                <QRCodeSVG value={receiptLot.qrCode} size={120} level="M" includeMargin />
+                <QRCodeSVG value={receiptLot.qrCode} size={160} level="M" includeMargin />
               </div>
             </div>
           </div>

@@ -1,8 +1,10 @@
 export type PrintableLabelPayload = {
+  companyName?: string;
   productName: string;
   quantity: number;
+  grossWeight?: number;
+  netWeight?: number;
   unit: string;
-  lotNumber: string;
   createdAt: string;
   barcode: string;
   qrCode: string;
@@ -11,9 +13,11 @@ export type PrintableLabelPayload = {
 export const buildLabelPrintUrl = (payload: PrintableLabelPayload) => {
   const params = new URLSearchParams({
     productName: payload.productName,
+    companyName: payload.companyName ?? '',
     quantity: String(payload.quantity),
+    grossWeight: String(payload.grossWeight ?? payload.quantity),
+    netWeight: String(payload.netWeight ?? payload.quantity),
     unit: payload.unit,
-    lotNumber: payload.lotNumber,
     createdAt: payload.createdAt,
     barcode: payload.barcode,
     qrCode: payload.qrCode,
