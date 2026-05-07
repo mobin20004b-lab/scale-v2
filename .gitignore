@@ -6,3 +6,5 @@ coverage/
 .env*
 !.env.example
 esp32.tar.gz
+
+uploads/
