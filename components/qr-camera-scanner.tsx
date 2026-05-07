@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Loader2, QrCode, ScanLine, ShieldCheck, XCircle } from 'lucide-react';
 
 type QrCameraScannerProps = {
@@ -32,18 +32,49 @@ export function QrCameraScanner({
   const [cameras, setCameras] = useState<CameraDevice[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState('');
 
+  const scannerRef = useRef<{ start: Function; stop: Function; clear: Function } | null>(null);
+
   useEffect(() => {
     if (!isOpen) {
       setStatus('idle');
+      const activeScanner = scannerRef.current;
+      scannerRef.current = null;
+      if (activeScanner) {
+        void Promise.resolve(activeScanner.stop())
+          .catch(() => undefined)
+          .finally(() => {
+            void Promise.resolve(activeScanner.clear()).catch(() => undefined);
+          });
+      }
       return;
     }
 
-    let scanner: { start: Function; stop: Function; clear: Function } | null = null;
     let mounted = true;
+
+    const cleanupScanner = async () => {
+      const activeScanner = scannerRef.current;
+      if (!activeScanner) return;
+
+      scannerRef.current = null;
+      try {
+        await Promise.resolve(activeScanner.stop());
+      } catch {
+        // ignore stop errors during camera switches/unmount
+      }
+
+      try {
+        await Promise.resolve(activeScanner.clear());
+      } catch {
+        // ignore clear errors during camera switches/unmount
+      }
+    };
 
     const setupScanner = async () => {
       try {
         setStatus('loading');
+        await cleanupScanner();
+        if (!mounted) return;
+
         const { Html5Qrcode } = await import('html5-qrcode');
         if (!mounted) return;
 
@@ -67,9 +98,13 @@ export function QrCameraScanner({
           return;
         }
 
-        setSelectedCameraId(cameraIdToUse);
+        if (!selectedCameraId) {
+          setSelectedCameraId(cameraIdToUse);
+        }
 
-        scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
+        const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
+        scannerRef.current = scanner;
+
         await scanner.start(
           cameraIdToUse,
           { fps: 10, qrbox: { width: 220, height: 220 } },
@@ -81,8 +116,15 @@ export function QrCameraScanner({
           () => undefined,
         );
 
+        if (!mounted || scannerRef.current !== scanner) {
+          await Promise.resolve(scanner.stop()).catch(() => undefined);
+          await Promise.resolve(scanner.clear()).catch(() => undefined);
+          return;
+        }
+
         setStatus('ready');
       } catch {
+        if (!mounted) return;
         setStatus('error');
         onSetupError('دسترسی به دوربین یا اسکنر ممکن نیست. لطفاً اجازه Camera را بررسی کنید.');
       }
@@ -92,15 +134,9 @@ export function QrCameraScanner({
 
     return () => {
       mounted = false;
-      if (scanner) {
-        Promise.resolve(scanner.stop())
-          .catch(() => undefined)
-          .finally(() => {
-            Promise.resolve(scanner?.clear()).catch(() => undefined);
-          });
-      }
+      void cleanupScanner();
     };
-  }, [isOpen, onDetected, onSetupError]);
+  }, [isOpen, onDetected, onSetupError, selectedCameraId]);
 
   const statusText = useMemo(() => {
     if (isBusy) return 'در حال پردازش اطلاعات اسکن...';
