@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Loader2, Search } from 'lucide-react';
 import { QrCameraScanner } from '@/components/qr-camera-scanner';
@@ -42,6 +42,7 @@ export default function OutgoingGoods() {
   const [isResolvingBarcode, setIsResolvingBarcode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessState, setShowSuccessState] = useState(false);
+  const barcodeInFlightRef = useRef<Set<string>>(new Set());
 
   const numericWeight = Number(weight);
   const isWeightValid = Number.isFinite(numericWeight) && numericWeight > 0;
@@ -94,6 +95,11 @@ export default function OutgoingGoods() {
       return;
     }
 
+    if (barcodeInFlightRef.current.has(nextBarcode)) {
+      return;
+    }
+
+    barcodeInFlightRef.current.add(nextBarcode);
     setIsResolvingBarcode(true);
     setShowSuccessState(false);
 
@@ -123,6 +129,7 @@ export default function OutgoingGoods() {
       setMessageType('success');
       setMessage('اطلاعات خروج (محصول، لات و وزن) تکمیل شد.');
     } finally {
+      barcodeInFlightRef.current.delete(nextBarcode);
       setIsResolvingBarcode(false);
     }
   }, [barcode, resetOutgoingForm]);
