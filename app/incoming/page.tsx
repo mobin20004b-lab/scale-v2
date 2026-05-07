@@ -47,24 +47,26 @@ export default function IncomingGoods() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const [generatedLot, setGeneratedLot] = useState<LotReceipt | null>(null);
+  const [companyName, setCompanyName] = useState('نساجی زمرد');
 
   const loadInitialData = async () => {
     setIsBootstrapping(true);
     setError('');
     try {
-      const [p, w, s] = await Promise.all([fetch('/api/products'), fetch('/api/warehouses'), fetch('/api/scales')]);
-      if (!p.ok || !w.ok || !s.ok) {
+      const [p, w, s, settingsRes] = await Promise.all([fetch('/api/products'), fetch('/api/warehouses'), fetch('/api/scales'), fetch('/api/settings')]);
+      if (!p.ok || !w.ok || !s.ok || !settingsRes.ok) {
         throw new Error('Failed to load initial data');
       }
 
-      const [pv, wv, sv] = await Promise.all([p.json(), w.json(), s.json()]);
+      const [pv, wv, sv, settingsData] = await Promise.all([p.json(), w.json(), s.json(), settingsRes.json()]);
       setProducts(pv);
       setWarehouses(wv);
       setScales(sv);
+      setCompanyName(String(settingsData?.settings?.companyName ?? 'نساجی زمرد'));
 
       setProductId((prev) => prev || pv[0]?.id || '');
       setWarehouseId((prev) => prev || wv[0]?.id || '');
-      setScaleId((prev) => (prev === '' ? '' : prev || sv[0]?.id || ''));
+      setScaleId((prev) => prev || sv[0]?.id || '');
     } catch (e) {
       setError('دریافت داده‌های اولیه ناموفق بود.');
     } finally {
@@ -166,10 +168,12 @@ export default function IncomingGoods() {
     const lotProduct = products.find((p) => p.id === generatedLot.productId);
 
     openLabelPrintWindow({
+      companyName,
       productName: lotProduct?.name || '-',
       quantity: generatedLot.quantity,
+      grossWeight: Number(weight || selectedScale?.currentWeight || generatedLot.quantity),
+      netWeight: generatedLot.quantity,
       unit: lotProduct?.unit || 'kg',
-      lotNumber: generatedLot.lotNumber,
       createdAt: generatedLot.createdAt,
       barcode: generatedLot.barcode,
       qrCode: generatedLot.qrCode,
@@ -299,21 +303,20 @@ export default function IncomingGoods() {
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-4 bg-white p-6 rounded-2xl border border-border sm:w-[10cm] sm:h-[15cm] mx-auto text-black print:w-[10cm] print:h-[15cm] print:border-none print:bg-white print:m-0 print:p-0">
+            <h1 className="text-4xl font-extrabold text-center">{companyName}</h1>
             <h1 className="text-2xl font-bold text-center">{selectedProduct?.brandName ? `${selectedProduct.brandName} - ${products.find((p) => p.id === generatedLot.productId)?.name}` : products.find((p) => p.id === generatedLot.productId)?.name}</h1>
-            <p className="text-xl font-medium">وزن: {generatedLot.quantity} {selectedProduct?.unit || 'kg'}</p>
-            <p className="text-lg text-gray-700">
-              شماره لات: <span className="font-mono">{generatedLot.lotNumber}</span>
-            </p>
-            <p className="text-sm text-gray-700" dir="ltr">
+            <p className="text-2xl font-semibold">وزن ناخالص: {Number(weight || selectedScale?.currentWeight || generatedLot.quantity)} {selectedProduct?.unit || 'kg'}</p>
+            <p className="text-2xl font-semibold">وزن خالص: {generatedLot.quantity} {selectedProduct?.unit || 'kg'}</p>
+            <p className="text-base text-gray-700" dir="ltr">
               {new Date(generatedLot.createdAt).toLocaleString('fa-IR')}
             </p>
 
-            <div className="py-2 scale-110">
-              <Barcode value={generatedLot.barcode} width={2} height={60} fontSize={14} displayValue />
+            <div className="py-2 scale-125">
+              <Barcode value={generatedLot.barcode} width={2.5} height={80} fontSize={18} displayValue />
             </div>
 
             <div className="pt-2">
-              <QRCodeSVG value={generatedLot.qrCode} size={120} level="M" includeMargin />
+              <QRCodeSVG value={generatedLot.qrCode} size={160} level="M" includeMargin />
             </div>
           </div>
         </div>
