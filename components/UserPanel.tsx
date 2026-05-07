@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getSession, signOut } from 'next-auth/react';
 import { LogOut, Settings, UserCircle2 } from 'lucide-react';
@@ -12,6 +13,7 @@ type SessionUser = {
 };
 
 export default function UserPanel() {
+  const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -26,7 +28,8 @@ export default function UserPanel() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await signOut({ callbackUrl: '/login' });
+    await signOut({ redirect: false });
+    router.push('/login');
   };
 
   return (
