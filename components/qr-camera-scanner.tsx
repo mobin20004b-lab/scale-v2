@@ -33,6 +33,9 @@ export function QrCameraScanner({
   const [selectedCameraId, setSelectedCameraId] = useState('');
 
   const scannerRef = useRef<{ start: Function; stop: Function; clear: Function } | null>(null);
+  const lastDetectedValueRef = useRef('');
+  const lastDetectedAtRef = useRef(0);
+  const decodeCooldownMs = 1500;
 
   useEffect(() => {
     if (!isOpen) {
@@ -109,9 +112,30 @@ export function QrCameraScanner({
           cameraIdToUse,
           { fps: 10, qrbox: { width: 220, height: 220 } },
           (decodedText: string) => {
+            const now = Date.now();
+            const normalizedText = decodedText.trim();
+            const isDuplicateWithinWindow =
+              normalizedText &&
+              normalizedText === lastDetectedValueRef.current &&
+              now - lastDetectedAtRef.current < decodeCooldownMs;
+
+            if (isDuplicateWithinWindow) return;
+
+            lastDetectedValueRef.current = normalizedText;
+            lastDetectedAtRef.current = now;
+
             setLastDetected(decodedText);
             onDetected(decodedText);
             setStatus('ready');
+            const activeScanner = scannerRef.current;
+            if (activeScanner) {
+              scannerRef.current = null;
+              void Promise.resolve(activeScanner.stop())
+                .catch(() => undefined)
+                .finally(() => {
+                  void Promise.resolve(activeScanner.clear()).catch(() => undefined);
+                });
+            }
           },
           () => undefined,
         );
