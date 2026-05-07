@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireAnyRole, getActorId } from '@/lib/authz';
 import { UserRole, UserStatus } from '@/generated/client/enums';
 
 const allowedRoles = new Set<string>(Object.values(UserRole));
 const allowedStatuses = new Set<string>(Object.values(UserStatus));
 
-function getActorId(session: Awaited<ReturnType<typeof getServerSession>>) {
-  if (!session || typeof session !== 'object' || !("user" in session)) return null;
-
-  const user = session.user;
-  if (!user || typeof user !== 'object' || !("id" in user)) return null;
-
-  const id = user.id;
-  return typeof id === 'string' && id.length > 0 ? id : null;
-}
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAnyRole(['ADMIN', 'CEO'], { route: '/api/users', action: 'GET_USERS' });
+  if (!auth.authorized) return auth.response!;
 
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get('search')?.trim();
@@ -64,8 +54,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAnyRole(['ADMIN', 'CEO'], { route: '/api/users', action: 'CREATE_USER' });
+  if (!auth.authorized) return auth.response!;
 
   const data = await request.json();
   const name = String(data.name ?? '').trim();
@@ -113,7 +103,7 @@ export async function POST(request: Request) {
 
     await prisma.activityLog.create({
       data: {
-        actorId: getActorId(session),
+        actorId: getActorId(auth.session),
         action: 'CREATE_USER',
         entityType: 'USER',
         entityId: user.id,

@@ -1,25 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireAnyRole, getActorId } from '@/lib/authz';
 import { UserRole, UserStatus } from '@/generated/client/enums';
 
 const allowedRoles = new Set<string>(Object.values(UserRole));
 const allowedStatuses = new Set<string>(Object.values(UserStatus));
 
-function getActorId(session: Awaited<ReturnType<typeof getServerSession>>) {
-  if (!session || typeof session !== 'object' || !('user' in session)) return null;
-
-  const user = session.user;
-  if (!user || typeof user !== 'object' || !('id' in user)) return null;
-
-  const id = user.id;
-  return typeof id === 'string' && id.length > 0 ? id : null;
-}
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAnyRole(['ADMIN', 'CEO'], { route: '/api/users/[id]', action: 'UPDATE_USER' });
+  if (!auth.authorized) return auth.response!;
 
   const { id } = await params;
   const data = await request.json();
@@ -67,7 +57,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     await prisma.activityLog.create({
       data: {
-        actorId: getActorId(session),
+        actorId: getActorId(auth.session),
         action: 'UPDATE_USER',
         entityType: 'USER',
         entityId: id,
