@@ -1,0 +1,6 @@
+-- Add Product spool-related fields missing from older databases.
+ALTER TABLE "Product"
+  ADD COLUMN IF NOT EXISTS "spoolsPerBag" INTEGER NOT NULL DEFAULT 12,
+  ADD COLUMN IF NOT EXISTS "spoolWeight" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "bagWeight" DOUBLE PRECISION NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "brandName" TEXT DEFAULT 'نساجی زمرد';
