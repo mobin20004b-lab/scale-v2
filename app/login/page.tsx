@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import { Button, Card, FormField, Input, Toast } from '@/components/ui';
+import { DEFAULT_COMPANY_NAME } from '@/lib/company';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingBootstrap, setCheckingBootstrap] = useState(true);
+  const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
 
   useEffect(() => {
     const checkBootstrap = async () => {
@@ -32,6 +34,23 @@ export default function LoginPage() {
 
     checkBootstrap();
   }, [router]);
+
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        const data = await res.json();
+        const resolvedCompanyName = String(data?.settings?.companyName ?? '').trim();
+        if (resolvedCompanyName) setCompanyName(resolvedCompanyName);
+      } catch {
+        // Ignore and keep fallback company name.
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -67,7 +86,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-md">
         <Card className="p-6 space-y-4">
           <div>
-            <h1 className="text-2xl font-bold">ورود به گرین‌استاک</h1>
+            <h1 className="text-2xl font-bold">ورود به {companyName}</h1>
             <p className="text-sm text-muted-foreground">با نام کاربری/ایمیل و رمز عبور وارد شوید.</p>
           </div>
 

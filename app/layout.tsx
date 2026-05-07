@@ -3,7 +3,7 @@ import './globals.css';
 import Sidebar from '@/components/Sidebar';
 
 export const metadata: Metadata = {
-  title: 'گرین‌استاک - مدیریت انبار',
+  title: 'مدیریت انبار',
   description: 'سیستم مدیریت انبار ساده و سریع با یکپارچه‌سازی ترازو و اسکن بارکد',
 };
 
