@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import { Vazirmatn } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
+
+const vazirmatn = Vazirmatn({ subsets: ['latin', 'arabic'], variable: '--font-vazirmatn' });
 
 export const metadata: Metadata = {
   title: 'گرین‌استاک - مدیریت انبار',
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa" dir="rtl">
-      <body suppressHydrationWarning className="antialiased font-sans">
+      <body suppressHydrationWarning className={`${vazirmatn.variable} antialiased font-sans`}>
         <Sidebar>{children}</Sidebar>
       </body>
     </html>
