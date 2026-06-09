@@ -8,7 +8,7 @@ RUN echo "https://mirror.arvancloud.ir/alpine/v3.20/main" > /etc/apk/repositorie
  && apk add --no-cache libc6-compat
 
 COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline --no-audit --progress=false
+RUN npm ci --no-audit --progress=false --loglevel=error
 
 
 FROM base AS builder
