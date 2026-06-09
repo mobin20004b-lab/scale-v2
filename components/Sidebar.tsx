@@ -1,16 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, Menu, X } from 'lucide-react';
+import { ChevronLeft, Menu, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import CommandPalette from '@/components/CommandPalette';
+import UserPanel from '@/components/UserPanel';
 import { navItems, quickActionsByPath } from '@/lib/navigation';
+import { DEFAULT_COMPANY_NAME } from '@/lib/company';
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const [companyName, setCompanyName] = useState(DEFAULT_COMPANY_NAME);
+
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (!res.ok) return;
+        const data = await res.json();
+        const resolvedCompanyName = String(data?.settings?.companyName ?? '').trim();
+        if (resolvedCompanyName) setCompanyName(resolvedCompanyName);
+      } catch {
+        // Ignore and keep fallback company name.
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   if (pathname === '/login' || pathname === '/setup' || pathname.startsWith('/print-label')) {
     return <>{children}</>;
@@ -53,7 +73,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-border bg-primary/5">
-          <span className="text-xl font-bold text-primary tracking-tight">گرین‌استاک</span>
+          <span className="text-xl font-bold text-primary tracking-tight">{companyName}</span>
           <button onClick={() => setIsOpen(false)} className="lg:hidden text-foreground">
             <X className="w-6 h-6" />
           </button>
@@ -116,7 +136,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                   );
                 })}
               </div>
-              <h2 className="text-lg font-semibold text-foreground mt-1">{activeItem?.label ?? 'گرین‌استاک'}</h2>
+              <h2 className="text-lg font-semibold text-foreground mt-1">{activeItem?.label ?? companyName}</h2>
             </div>
             <div className="hidden lg:flex items-center gap-1 rounded-xl bg-secondary/50 p-1">
               {navItems.slice(1, 5).map((item) => {
@@ -135,12 +155,20 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               })}
             </div>
             <CommandPalette />
+            <Link
+              href="/reports"
+              className="hidden md:inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              گزارش سریع
+            </Link>
             <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              سیستم آنلاین است
+              <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-full text-sm font-medium text-secondary-foreground">
+                <div className="w-2 h-2 rounded-full bg-primary" />
+                سیستم آنلاین است
+              </div>
+              <UserPanel />
             </div>
-          </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground ml-1">اقدامات سریع:</span>

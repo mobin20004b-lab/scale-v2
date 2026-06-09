@@ -36,6 +36,10 @@ interface Product {
   barcode: string;
   category: string | null;
   unit: string;
+  spoolsPerBag?: number;
+  spoolWeight?: number;
+  bagWeight?: number;
+  brandName?: string | null;
   lots?: Lot[];
 }
 
@@ -50,6 +54,10 @@ export default function ProductsManagement() {
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState('');
   const [unit, setUnit] = useState('kg');
+  const [spoolsPerBag, setSpoolsPerBag] = useState('12');
+  const [spoolWeight, setSpoolWeight] = useState('0');
+  const [bagWeight, setBagWeight] = useState('0');
+  const [brandName, setBrandName] = useState('نساجی زمرد');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
@@ -61,6 +69,7 @@ export default function ProductsManagement() {
   const [isLotSaving, setIsLotSaving] = useState(false);
 
   const [receiptLot, setReceiptLot] = useState<(Lot & { productName: string; productUnit: string }) | null>(null);
+  const [companyName, setCompanyName] = useState('نساجی زمرد');
 
   const fetchProducts = async () => {
     try {
@@ -76,6 +85,15 @@ export default function ProductsManagement() {
 
   useEffect(() => {
     fetchProducts();
+    (async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setCompanyName(String(data?.settings?.companyName ?? 'نساجی زمرد'));
+        }
+      } catch {}
+    })();
   }, []);
 
   const showTemporaryMessage = (setter: React.Dispatch<React.SetStateAction<string>>, value: string) => {
@@ -89,7 +107,7 @@ export default function ProductsManagement() {
       return;
     }
 
-    const payload = { name, description, barcode, category, unit };
+    const payload = { name, description, barcode, category, unit, spoolsPerBag: Number(spoolsPerBag || 12), spoolWeight: Number(spoolWeight || 0), bagWeight: Number(bagWeight || 0), brandName };
 
     try {
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
@@ -108,6 +126,14 @@ export default function ProductsManagement() {
         setBarcode('');
         setCategory('');
         setUnit('kg');
+    setSpoolsPerBag('12');
+    setSpoolWeight('0');
+    setBagWeight('0');
+    setBrandName('نساجی زمرد');
+        setSpoolsPerBag('12');
+        setSpoolWeight('0');
+        setBagWeight('0');
+        setBrandName('نساجی زمرد');
         setIsAdding(false);
         setEditingProduct(null);
         fetchProducts();
@@ -142,6 +168,10 @@ export default function ProductsManagement() {
     setBarcode(product.barcode);
     setCategory(product.category || '');
     setUnit(product.unit);
+    setSpoolsPerBag(String(product.spoolsPerBag ?? 12));
+    setSpoolWeight(String(product.spoolWeight ?? 0));
+    setBagWeight(String(product.bagWeight ?? 0));
+    setBrandName(product.brandName || 'نساجی زمرد');
     setIsAdding(true);
   };
 
@@ -153,6 +183,10 @@ export default function ProductsManagement() {
     setBarcode('');
     setCategory('');
     setUnit('kg');
+    setSpoolsPerBag('12');
+    setSpoolWeight('0');
+    setBagWeight('0');
+    setBrandName('نساجی زمرد');
   };
 
   const startEditLot = (lot: Lot, product: Product) => {
@@ -310,6 +344,48 @@ export default function ProductsManagement() {
                 className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">نام تجاری روی فاکتور</label>
+              <input
+                type="text"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                placeholder="مثال: نساجی زنبق"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">تعداد دوک در بسته</label>
+              <input
+                type="number"
+                min="1"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={spoolsPerBag}
+                onChange={(e) => setSpoolsPerBag(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">وزن هر دوک</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={spoolWeight}
+                onChange={(e) => setSpoolWeight(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">وزن کیسه/گونی خالی</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                className="w-full bg-background border border-border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+                value={bagWeight}
+                onChange={(e) => setBagWeight(e.target.value)}
               />
             </div>
           </div>
@@ -549,10 +625,12 @@ export default function ProductsManagement() {
                 <button
                   onClick={() =>
                     openLabelPrintWindow({
+                      companyName,
                       productName: receiptLot.productName,
                       quantity: receiptLot.quantity,
+                      grossWeight: receiptLot.quantity,
+                      netWeight: receiptLot.quantity,
                       unit: receiptLot.productUnit,
-                      lotNumber: receiptLot.lotNumber,
                       createdAt: receiptLot.createdAt,
                       barcode: receiptLot.barcode,
                       qrCode: receiptLot.qrCode,
@@ -570,21 +648,22 @@ export default function ProductsManagement() {
             </div>
 
             <div className="flex flex-col items-center justify-center space-y-4 bg-white p-6 rounded-2xl border border-border sm:w-[10cm] sm:h-[15cm] mx-auto text-black print:w-[10cm] print:h-[15cm] print:border-none print:bg-white print:m-0 print:p-0">
+              <h1 className="text-4xl font-extrabold text-center">{companyName}</h1>
               <h1 className="text-2xl font-bold text-center">{receiptLot.productName}</h1>
-              <p className="text-xl font-medium">
-                وزن/تعداد: {receiptLot.quantity} {receiptLot.productUnit}
+              <p className="text-2xl font-semibold">
+                وزن ناخالص: {receiptLot.quantity} {receiptLot.productUnit}
               </p>
-              <p className="text-lg text-gray-700">
-                شماره لات: <span className="font-mono">{receiptLot.lotNumber}</span>
+              <p className="text-2xl font-semibold">
+                وزن خالص: {receiptLot.quantity} {receiptLot.productUnit}
               </p>
-              <p className="text-sm text-gray-700" dir="ltr">
+              <p className="text-base text-gray-700" dir="ltr">
                 {new Date(receiptLot.createdAt).toLocaleString('fa-IR')}
               </p>
-              <div className="py-2 scale-110">
-                <Barcode value={receiptLot.barcode} width={2} height={60} fontSize={14} displayValue />
+              <div className="py-2 scale-125">
+                <Barcode value={receiptLot.barcode} width={2.5} height={80} fontSize={18} displayValue />
               </div>
               <div className="pt-2">
-                <QRCodeSVG value={receiptLot.qrCode} size={120} level="M" includeMargin />
+                <QRCodeSVG value={receiptLot.qrCode} size={160} level="M" includeMargin />
               </div>
             </div>
           </div>

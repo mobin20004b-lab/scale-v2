@@ -3,6 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+const PRODUCT_SAFE_SELECT = {
+  id: true,
+  name: true,
+  nameFa: true,
+  description: true,
+  descriptionFa: true,
+  barcode: true,
+  qrCode: true,
+  category: true,
+  unit: true,
+  brandName: true,
+  isDeleted: true,
+  deletedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 
 export async function GET(request: Request, { params }: { params: Promise<{ barcode: string }> }) {
   const { barcode } = await params;
@@ -23,7 +40,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ barc
     },
     include: {
       product: {
-        include: { lots: { where: { quantity: { gt: 0 } }, orderBy: { createdAt: 'asc' } } }
+        select: {
+          ...PRODUCT_SAFE_SELECT,
+          lots: { where: { quantity: { gt: 0 } }, orderBy: { createdAt: 'asc' } }
+        }
       }
     }
   });
@@ -34,7 +54,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ barc
   } else {
     product = await prisma.product.findFirst({
       where: { barcode, isDeleted: false },
-      include: { lots: { where: { quantity: { gt: 0 } }, orderBy: { createdAt: 'asc' } } }
+      select: {
+        ...PRODUCT_SAFE_SELECT,
+        lots: { where: { quantity: { gt: 0 } }, orderBy: { createdAt: 'asc' } }
+      }
     });
   }
 

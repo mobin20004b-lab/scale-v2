@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Loader2, QrCode, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Search } from 'lucide-react';
+import { QrCameraScanner } from '@/components/qr-camera-scanner';
 
 type LotSummary = {
   id: string;
@@ -20,6 +21,7 @@ type BarcodeProduct = {
 };
 
 type Warehouse = { id: string; name: string };
+type Customer = { id: string; name: string; phone?: string | null; email?: string | null };
 
 export default function OutgoingGoods() {
   const router = useRouter();
@@ -28,8 +30,10 @@ export default function OutgoingGoods() {
   const [product, setProduct] = useState<BarcodeProduct | null>(null);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<BarcodeProduct[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [weight, setWeight] = useState('');
   const [lotId, setLotId] = useState('');
   const [message, setMessage] = useState('');
@@ -38,6 +42,7 @@ export default function OutgoingGoods() {
   const [isResolvingBarcode, setIsResolvingBarcode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessState, setShowSuccessState] = useState(false);
+  const barcodeInFlightRef = useRef<Set<string>>(new Set());
 
   const numericWeight = Number(weight);
   const isWeightValid = Number.isFinite(numericWeight) && numericWeight > 0;
@@ -48,10 +53,10 @@ export default function OutgoingGoods() {
   );
   const isFullPackageProduct = product?.unit === 'box' || product?.unit === 'pcs';
 
-  const canSubmit = Boolean(product && warehouseId && lotId && isWeightValid && !isSubmitting);
+  const canSubmit = Boolean(product && warehouseId && customerId && lotId && isWeightValid && !isSubmitting);
 
   useEffect(() => {
-    Promise.all([fetch('/api/warehouses'), fetch('/api/products')]).then(async ([w, p]) => {
+    Promise.all([fetch('/api/warehouses'), fetch('/api/products'), fetch('/api/customers')]).then(async ([w, p, c]) => {
       if (w.ok) {
         const wv = await w.json();
         setWarehouses(wv);
@@ -65,81 +70,23 @@ export default function OutgoingGoods() {
           lots: item.lots?.filter((lot) => lot.quantity > 0) ?? [],
         })));
       }
+
+      if (c.ok) {
+        const cv = (await c.json()) as Customer[];
+        setCustomers(cv);
+        if (cv.length > 0) setCustomerId(cv[0].id);
+      }
     });
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const initialBarcode = new URLSearchParams(window.location.search).get('barcode');
-    if (initialBarcode) {
-      setBarcode(initialBarcode);
-      void resolveBarcode(initialBarcode);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!scannerOpen) return;
-
-    let scanner: {
-      render: (
-        onSuccess: (decodedText: string) => void,
-        onError?: (errorMessage: string, error?: unknown) => void,
-      ) => void;
-      clear: () => Promise<void>;
-    } | null = null;
-    let mounted = true;
-
-    const setupScanner = async () => {
-      try {
-        const { Html5QrcodeScanner } = await import('html5-qrcode');
-        if (!mounted) return;
-
-        scanner = new Html5QrcodeScanner(
-          'outgoing-qr-reader',
-          {
-            fps: 10,
-            qrbox: { width: 220, height: 220 },
-            rememberLastUsedCamera: true,
-          },
-          false,
-        );
-
-        scanner.render(
-          (decodedText) => {
-            setBarcode(decodedText);
-            setScannerOpen(false);
-            setMessageType('info');
-            setMessage('کد با موفقیت اسکن شد. اطلاعات خروج به‌صورت خودکار تکمیل شد.');
-            void resolveBarcode(decodedText);
-          },
-          () => undefined,
-        );
-      } catch {
-        setMessageType('error');
-        setMessage('دسترسی به دوربین یا اسکنر ممکن نیست.');
-      }
-    };
-
-    setupScanner();
-
-    return () => {
-      mounted = false;
-      if (scanner) {
-        scanner.clear().catch(() => undefined);
-      }
-    };
-  }, [scannerOpen]);
-
-  const resetOutgoingForm = () => {
+  const resetOutgoingForm = useCallback(() => {
     setProduct(null);
     setLotId('');
     setWeight('');
     setShowSuccessState(false);
-  };
+  }, []);
 
-  const resolveBarcode = async (rawBarcode?: string) => {
+  const resolveBarcode = useCallback(async (rawBarcode?: string) => {
     const nextBarcode = (rawBarcode ?? barcode).trim();
 
     if (!nextBarcode) {
@@ -148,6 +95,11 @@ export default function OutgoingGoods() {
       return;
     }
 
+    if (barcodeInFlightRef.current.has(nextBarcode)) {
+      return;
+    }
+
+    barcodeInFlightRef.current.add(nextBarcode);
     setIsResolvingBarcode(true);
     setShowSuccessState(false);
 
@@ -177,12 +129,40 @@ export default function OutgoingGoods() {
       setMessageType('success');
       setMessage('اطلاعات خروج (محصول، لات و وزن) تکمیل شد.');
     } finally {
+      barcodeInFlightRef.current.delete(nextBarcode);
       setIsResolvingBarcode(false);
     }
-  };
+  }, [barcode, resetOutgoingForm]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const initialBarcode = new URLSearchParams(window.location.search).get('barcode');
+    if (initialBarcode) {
+      setBarcode(initialBarcode);
+      void resolveBarcode(initialBarcode);
+    }
+  }, [resolveBarcode]);
+
+  const handleScannerDetected = useCallback((decodedText: string) => {
+    setBarcode(decodedText);
+    setScannerOpen(false);
+    setMessageType('info');
+    setMessage('کد با موفقیت اسکن شد. اطلاعات خروج به‌صورت خودکار تکمیل شد.');
+    void resolveBarcode(decodedText);
+  }, [resolveBarcode]);
+
+  const handleScannerError = useCallback((errorMessage: string) => {
+    setMessageType('error');
+    setMessage(errorMessage);
+  }, []);
 
   const submit = async () => {
-    if (!product || !warehouseId || !lotId || !isWeightValid) return;
+    if (!product || !warehouseId || !customerId || !lotId || !isWeightValid) {
+      setMessageType('error');
+      setMessage('انتخاب مشتری برای ثبت خروج کالا الزامی است.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -195,6 +175,7 @@ export default function OutgoingGoods() {
           weight: Number(weight),
           productId: product.id,
           warehouseId,
+          customerId,
           lotId,
         }),
       });
@@ -265,21 +246,14 @@ export default function OutgoingGoods() {
             {isResolvingBarcode ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             جستجو
           </button>
-          <button
-            onClick={() => setScannerOpen((prev) => !prev)}
-            className="bg-primary text-primary-foreground rounded-xl px-4 py-2 flex items-center justify-center gap-2"
-          >
-            {scannerOpen ? <XCircle className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
-            {scannerOpen ? 'بستن اسکنر' : 'اسکن QR'}
-          </button>
+          <QrCameraScanner
+            isOpen={scannerOpen}
+            isBusy={isResolvingBarcode}
+            onToggle={() => setScannerOpen((prev) => !prev)}
+            onDetected={handleScannerDetected}
+            onSetupError={handleScannerError}
+          />
         </div>
-
-        {scannerOpen && (
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-xs text-muted-foreground mb-2">QR یا بارکد لات را مقابل دوربین بگیرید.</p>
-            <div id="outgoing-qr-reader" className="min-h-[280px]" dir="ltr" />
-          </div>
-        )}
 
         <div className="border-t border-border pt-3 space-y-2">
           <p className="text-sm font-medium">انتخاب دستی کالا برای خروج</p>
@@ -368,17 +342,37 @@ export default function OutgoingGoods() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-muted-foreground mr-1">انبار خروجی</label>
-              <select
-                className="w-full border border-border rounded-xl p-2 bg-background"
-                value={warehouseId}
-                onChange={(e) => setWarehouseId(e.target.value)}
-              >
+        <select
+          className="w-full border border-border rounded-xl p-2 bg-background"
+          value={warehouseId}
+          onChange={(e) => setWarehouseId(e.target.value)}
+        >
                 {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name}
                   </option>
                 ))}
-              </select>
+        </select>
+
+        <div className="space-y-1">
+          <label className="text-sm text-muted-foreground">مشتری</label>
+          <select
+            className="w-full border border-border rounded-xl p-2 bg-background"
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+          >
+            <option value="">انتخاب مشتری (الزامی)</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+                {customer.phone ? ` - ${customer.phone}` : customer.email ? ` - ${customer.email}` : ''}
+              </option>
+            ))}
+          </select>
+          {!customerId && (
+            <p className="text-xs text-destructive">برای تکمیل عملیات خروج، انتخاب مشتری الزامی است.</p>
+          )}
+        </div>
             </div>
 
             <div className="space-y-1">

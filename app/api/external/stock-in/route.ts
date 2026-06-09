@@ -1,20 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-
-// Middleware-like check for external API token
-async function verifyExternalToken(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false;
-  }
-  const token = authHeader.split(' ')[1];
-  return token === process.env.EXTERNAL_API_KEY || token === 'demo_external_token';
-}
+import {
+  externalApiUnauthorizedResponse,
+  isExternalApiRequestAuthorized,
+} from '@/lib/external-api-auth';
 
 export async function POST(request: Request) {
-  if (!(await verifyExternalToken(request))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!isExternalApiRequestAuthorized(request)) {
+    return externalApiUnauthorizedResponse();
   }
 
   const data = await request.json();

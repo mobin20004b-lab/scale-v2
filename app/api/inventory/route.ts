@@ -14,6 +14,12 @@ export async function GET() {
       product: true,
       warehouse: true,
       scale: true,
+      customer: true,
+      customerOrder: {
+        include: {
+          items: true,
+        },
+      },
     },
     orderBy: {
       createdAt: 'desc',
@@ -40,6 +46,7 @@ export async function POST(request: Request) {
   try {
     let lotId = data.lotId || null;
     let lot = null;
+    let customerOrderId: string | null = null;
 
     if (data.type === 'STOCK_IN') {
       const timestamp = Date.now();
@@ -58,6 +65,10 @@ export async function POST(request: Request) {
       });
       lotId = lot.id;
     } else if (data.type === 'STOCK_OUT') {
+      if (!data.customerId) {
+        return NextResponse.json({ error: 'Customer is required for STOCK_OUT' }, { status: 400 });
+      }
+
       if (!lotId) {
         return NextResponse.json({ error: 'Lot ID is required for STOCK_OUT' }, { status: 400 });
       }
@@ -99,9 +110,46 @@ export async function POST(request: Request) {
         warehouseId: data.warehouseId,
         scaleId: data.scaleId,
         lotId,
+        customerId: data.customerId ?? null,
         createdBy: session.user.id,
       },
     });
+
+    if (data.type === 'STOCK_OUT') {
+      const product = await prisma.product.findUnique({
+        where: { id: data.productId },
+        select: { id: true, name: true },
+      });
+
+      const unitPrice = Number(data.unitPrice ?? 0);
+      const totalPrice = unitPrice > 0 ? quantity * unitPrice : 0;
+
+      const order = await prisma.customerOrder.create({
+        data: {
+          customerId: data.customerId,
+          orderDate: new Date(),
+          status: data.orderStatus || 'PENDING',
+          paymentStatus: data.paymentStatus || 'UNPAID',
+          totalPrice,
+          items: {
+            create: {
+              productId: data.productId,
+              productName: product?.name || 'محصول نامشخص',
+              quantity,
+              unitPrice,
+              totalPrice,
+            },
+          },
+        },
+      });
+
+      customerOrderId = order.id;
+
+      await prisma.inventoryLedger.update({
+        where: { id: ledger.id },
+        data: { customerOrderId: order.id },
+      });
+    }
 
     await prisma.activityLog.create({
       data: {
@@ -113,7 +161,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ ledger, lot }, { status: 201 });
+    return NextResponse.json({ ledger, lot, customerOrderId }, { status: 201 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to create ledger entry' }, { status: 500 });

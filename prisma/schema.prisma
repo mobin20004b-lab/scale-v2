@@ -33,12 +33,17 @@ model Product {
   qrCode        String            @unique
   category      String?
   unit          String            @default("kg")
+  spoolsPerBag  Int               @default(12)
+  spoolWeight   Float             @default(0)
+  bagWeight     Float             @default(0)
+  brandName     String?           @default("نساجی زمرد")
   isDeleted     Boolean           @default(false)
   deletedAt     DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   ledgerEntries InventoryLedger[]
   lots          Lot[]
+  orderItems    CustomerOrderItem[]
 }
 
 model Lot {
@@ -100,14 +105,60 @@ model InventoryLedger {
   sourceTxId  String?
   createdAt   DateTime   @default(now())
   createdBy   String?
+  customerId  String?
+  customerOrderId String?   @unique
   productId   String
   warehouseId String
   scaleId     String?
   lotId       String?
+  customer    Customer?  @relation(fields: [customerId], references: [id])
+  customerOrder CustomerOrder? @relation("CustomerOrderLedger", fields: [customerOrderId], references: [id])
   product     Product    @relation(fields: [productId], references: [id])
   scale       Scale?     @relation(fields: [scaleId], references: [id])
   warehouse   Warehouse  @relation(fields: [warehouseId], references: [id])
   lot         Lot?       @relation(fields: [lotId], references: [id])
+}
+
+model Customer {
+  id          String          @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  isDeleted   Boolean         @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  orders      CustomerOrder[]
+  ledgers     InventoryLedger[]
+}
+
+model CustomerOrder {
+  id            String              @id @default(cuid())
+  customerId    String
+  orderDate     DateTime            @default(now())
+  status        String              @default("PENDING")
+  paymentStatus String              @default("UNPAID")
+  totalPrice    Float               @default(0)
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  customer      Customer            @relation(fields: [customerId], references: [id])
+  ledger        InventoryLedger?    @relation("CustomerOrderLedger")
+  items         CustomerOrderItem[]
+}
+
+model CustomerOrderItem {
+  id          String        @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String
+  quantity    Float
+  unitPrice   Float         @default(0)
+  totalPrice  Float         @default(0)
+  createdAt   DateTime      @default(now())
+  order       CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product       @relation(fields: [productId], references: [id])
 }
 
 model UnknownBarcode {

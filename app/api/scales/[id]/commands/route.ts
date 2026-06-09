@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireAnyRole, getActorId } from '@/lib/authz';
 
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireAnyRole(['ADMIN', 'CEO', 'WAREHOUSE_OPERATOR'], { route: '/api/scales/[id]/commands', action: 'SEND_COMMAND' });
+  if (!auth.authorized) return auth.response!;
 
   const data = await request.json();
 
@@ -24,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Log activity
     await prisma.activityLog.create({
       data: {
-        actorId: session.user.id,
+        actorId: getActorId(auth.session),
         action: 'SEND_COMMAND',
         entityType: 'SCALE_COMMAND',
         entityId: command.id,
@@ -40,10 +37,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireAnyRole(['ADMIN', 'CEO', 'WAREHOUSE_OPERATOR'], { route: '/api/scales/[id]/commands', action: 'LIST_COMMANDS' });
+  if (!auth.authorized) return auth.response!;
 
   const commands = await prisma.scaleCommand.findMany({
     where: { scaleId: id },

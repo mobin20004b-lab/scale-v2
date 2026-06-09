@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Barcode from 'react-barcode';
 
 type PrintLabelClientProps = {
+  companyName?: string;
   productName: string;
   unit: string;
   lotNumber: string;
@@ -12,9 +13,11 @@ type PrintLabelClientProps = {
   qrCode: string;
   quantity: number;
   grossWeight?: number;
+  netWeight?: number;
 };
 
 export default function PrintLabelClient({
+  companyName,
   productName,
   unit,
   lotNumber,
@@ -22,6 +25,7 @@ export default function PrintLabelClient({
   barcode,
   quantity,
   grossWeight,
+  netWeight,
 }: PrintLabelClientProps) {
   useEffect(() => {
     document.body.classList.add('print-label-page');
@@ -32,8 +36,8 @@ export default function PrintLabelClient({
     };
   }, []);
 
-  const netWeight = quantity;
-  const grossW = grossWeight ?? netWeight;
+  const netW = netWeight ?? quantity;
+  const grossW = grossWeight ?? netW;
 
   const batchDigits = lotNumber.split('').slice(0, 8);
   while (batchDigits.length < 8) {
@@ -67,7 +71,7 @@ export default function PrintLabelClient({
           {/* Header */}
           <div className="flex flex-[1.2] items-center justify-center border-b border-gray-300 px-4">
             <div className="text-center">
-              <h3 className="text-base font-bold tracking-wider">نساجی زنبق</h3>
+              <h3 className="text-base font-bold tracking-wider">{companyName || 'نساجی زنبق'}</h3>
               <div className="mx-auto mt-1 h-[2px] w-20 bg-gray-600" />
             </div>
           </div>
@@ -85,7 +89,7 @@ export default function PrintLabelClient({
               </p>
               <p>
                 <span className="font-bold ml-1">وزن خالص:</span>
-                <span>{netWeight} {unit}</span>
+                <span>{netW} {unit}</span>
               </p>
             </div>
           </div>

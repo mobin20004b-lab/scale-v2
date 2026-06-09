@@ -3,6 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+const PRODUCT_SAFE_SELECT = {
+  id: true,
+  name: true,
+  nameFa: true,
+  description: true,
+  descriptionFa: true,
+  barcode: true,
+  qrCode: true,
+  category: true,
+  unit: true,
+  brandName: true,
+  isDeleted: true,
+  deletedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,8 +28,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id: id, isDeleted: false }
+  const product = await prisma.product.findFirst({
+    where: { id: id, isDeleted: false },
+    select: PRODUCT_SAFE_SELECT,
   });
 
   if (!product) {
@@ -40,6 +58,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         barcode: data.barcode,
         category: data.category,
         unit: data.unit,
+        spoolsPerBag: Number(data.spoolsPerBag ?? 12),
+        spoolWeight: Number(data.spoolWeight ?? 0),
+        bagWeight: Number(data.bagWeight ?? 0),
+        brandName: data.brandName || 'نساجی زمرد',
       }
     });
 

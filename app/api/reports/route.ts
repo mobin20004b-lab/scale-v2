@@ -30,12 +30,39 @@ export async function GET(request: Request) {
       const ledgers = await prisma.inventoryLedger.findMany({
         where: dateFilter,
         include: {
-          product: true,
-          warehouse: true,
+          product: { select: { name: true } },
+          warehouse: { select: { name: true } },
+          customer: { select: { id: true, name: true } },
+          customerOrder: { select: { id: true, status: true, paymentStatus: true } },
         },
         orderBy: { createdAt: 'desc' }
       });
-      return NextResponse.json(ledgers);
+
+      const creatorIds = Array.from(
+        new Set(
+          ledgers
+            .map((ledger) => ledger.createdBy)
+            .filter((value): value is string => Boolean(value) && value !== 'EXTERNAL_API'),
+        ),
+      );
+
+      const creators = creatorIds.length
+        ? await prisma.user.findMany({
+            where: { id: { in: creatorIds } },
+            select: { id: true, name: true, username: true },
+          })
+        : [];
+
+      const creatorsById = new Map(
+        creators.map((creator) => [creator.id, creator.name || creator.username]),
+      );
+
+      const reportRows = ledgers.map((ledger) => ({
+        ...ledger,
+        operatorName: ledger.createdBy ? creatorsById.get(ledger.createdBy) || ledger.createdBy : '—',
+      }));
+
+      return NextResponse.json(reportRows);
     } else if (type === 'low-stock') {
       // Basic low stock report
       const inventory = await prisma.inventoryLedger.groupBy({

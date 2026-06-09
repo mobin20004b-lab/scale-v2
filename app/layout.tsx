@@ -6,7 +6,7 @@ import Sidebar from '@/components/Sidebar';
 const vazirmatn = Vazirmatn({ subsets: ['latin', 'arabic'], variable: '--font-vazirmatn' });
 
 export const metadata: Metadata = {
-  title: 'گرین‌استاک - مدیریت انبار',
+  title: 'مدیریت انبار',
   description: 'سیستم مدیریت انبار ساده و سریع با یکپارچه‌سازی ترازو و اسکن بارکد',
 };
 

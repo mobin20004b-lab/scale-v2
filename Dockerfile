@@ -1,4 +1,4 @@
-FROM mirror2.chabokan.net/node:22-alpine AS base
+FROM node:22-alpine AS base
 
 FROM base AS deps
 WORKDIR /app
@@ -10,8 +10,7 @@ RUN echo "https://mirror.arvancloud.ir/alpine/v3.20/main" > /etc/apk/repositorie
 ENV NPM_CONFIG_REGISTRY=https://npm.devneeds.ir/
 
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit --progress=false
+RUN npm ci --prefer-offline --no-audit --progress=false
 
 
 FROM base AS builder
@@ -23,6 +22,9 @@ ENV NPM_CONFIG_REGISTRY=https://npm.devneeds.ir/
 
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
+
+ARG EXTERNAL_API_KEY
+ENV EXTERNAL_API_KEY=$EXTERNAL_API_KEY
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -37,7 +39,7 @@ RUN npx prisma --version
 RUN npm run build
 
 
-FROM mirror2.chabokan.net/node:22-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

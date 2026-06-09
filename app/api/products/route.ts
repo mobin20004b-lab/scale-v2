@@ -3,6 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+const PRODUCT_SAFE_SELECT = {
+  id: true,
+  name: true,
+  nameFa: true,
+  description: true,
+  descriptionFa: true,
+  barcode: true,
+  qrCode: true,
+  category: true,
+  unit: true,
+  brandName: true,
+  isDeleted: true,
+  deletedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -12,7 +29,8 @@ export async function GET() {
 
   const products = await prisma.product.findMany({
     where: { isDeleted: false },
-    include: {
+    select: {
+      ...PRODUCT_SAFE_SELECT,
       lots: {
         orderBy: { createdAt: 'desc' }
       }
@@ -39,6 +57,10 @@ export async function POST(request: Request) {
         unit: data.unit,
         qrCode: data.qrCode || `QR-${data.barcode}`,
         nameFa: data.nameFa || data.name,
+        spoolsPerBag: Number(data.spoolsPerBag ?? 12),
+        spoolWeight: Number(data.spoolWeight ?? 0),
+        bagWeight: Number(data.bagWeight ?? 0),
+        brandName: data.brandName || 'نساجی زمرد',
       }
     });
 
