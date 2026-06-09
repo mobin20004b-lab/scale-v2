@@ -14,9 +14,7 @@ ENV DATABASE_URL=$DATABASE_URL
 ARG EXTERNAL_API_KEY=build_placeholder_key_24chars
 ENV EXTERNAL_API_KEY=$EXTERNAL_API_KEY
 
-RUN echo "https://mirror.arvancloud.ir/alpine/v3.20/main" > /etc/apk/repositories \
- && echo "https://mirror.arvancloud.ir/alpine/v3.20/community" >> /etc/apk/repositories \
- && apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
