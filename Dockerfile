@@ -7,8 +7,6 @@ RUN echo "https://mirror.arvancloud.ir/alpine/v3.20/main" > /etc/apk/repositorie
  && echo "https://mirror.arvancloud.ir/alpine/v3.20/community" >> /etc/apk/repositories \
  && apk add --no-cache libc6-compat
 
-ENV NPM_CONFIG_REGISTRY=https://npm.devneeds.ir/
-
 COPY package.json package-lock.json ./
 RUN npm ci --prefer-offline --no-audit --progress=false
 
@@ -18,8 +16,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NPM_CONFIG_REGISTRY=https://npm.devneeds.ir/
-
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 

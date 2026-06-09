@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Barcode from 'react-barcode';
+import { QRCodeSVG } from 'qrcode.react';
 
 type PrintLabelClientProps = {
   companyName?: string;
@@ -26,6 +27,7 @@ export default function PrintLabelClient({
   quantity,
   grossWeight,
   netWeight,
+  qrCode,
 }: PrintLabelClientProps) {
   useEffect(() => {
     document.body.classList.add('print-label-page');
@@ -69,10 +71,13 @@ export default function PrintLabelClient({
           style={{ fontFamily: "var(--font-vazirmatn), system-ui, -apple-system, sans-serif" }}
         >
           {/* Header */}
-          <div className="flex flex-[1.2] items-center justify-center border-b border-gray-300 px-4">
-            <div className="text-center">
-              <h3 className="text-base font-bold tracking-wider">{companyName || 'نساجی زنبق'}</h3>
-              <div className="mx-auto mt-1 h-[2px] w-20 bg-gray-600" />
+          <div className="flex flex-[1.2] items-center justify-center border-b border-gray-300 px-2">
+            <div className="relative flex w-full items-center justify-center">
+              <QRCodeSVG value={qrCode} size={40} level="M" className="absolute left-0" />
+              <div className="text-center">
+                <h3 className="text-base font-bold tracking-wider">{companyName || 'نساجی زنبق'}</h3>
+                <div className="mx-auto mt-1 h-[2px] w-20 bg-gray-600" />
+              </div>
             </div>
           </div>
 

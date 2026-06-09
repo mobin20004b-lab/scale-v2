@@ -5,6 +5,7 @@ export type PrintableLabelPayload = {
   grossWeight?: number;
   netWeight?: number;
   unit: string;
+  lotNumber: string;
   createdAt: string;
   barcode: string;
   qrCode: string;
@@ -18,6 +19,7 @@ export const buildLabelPrintUrl = (payload: PrintableLabelPayload) => {
     grossWeight: String(payload.grossWeight ?? payload.quantity),
     netWeight: String(payload.netWeight ?? payload.quantity),
     unit: payload.unit,
+    lotNumber: payload.lotNumber,
     createdAt: payload.createdAt,
     barcode: payload.barcode,
     qrCode: payload.qrCode,

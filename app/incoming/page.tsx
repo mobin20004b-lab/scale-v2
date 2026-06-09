@@ -174,6 +174,7 @@ export default function IncomingGoods() {
       grossWeight: Number(weight || selectedScale?.currentWeight || generatedLot.quantity),
       netWeight: generatedLot.quantity,
       unit: lotProduct?.unit || 'kg',
+      lotNumber: generatedLot.lotNumber,
       createdAt: generatedLot.createdAt,
       barcode: generatedLot.barcode,
       qrCode: generatedLot.qrCode,

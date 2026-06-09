@@ -631,6 +631,7 @@ export default function ProductsManagement() {
                       grossWeight: receiptLot.quantity,
                       netWeight: receiptLot.quantity,
                       unit: receiptLot.productUnit,
+                      lotNumber: receiptLot.lotNumber,
                       createdAt: receiptLot.createdAt,
                       barcode: receiptLot.barcode,
                       qrCode: receiptLot.qrCode,
