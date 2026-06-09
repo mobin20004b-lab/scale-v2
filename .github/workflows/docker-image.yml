@@ -7,6 +7,8 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/scale-v2
+  DOCKER_BUILDKIT: 1
+  BUILDKIT_PROGRESS: plain
 
 jobs:
   docker:
@@ -51,6 +53,6 @@ jobs:
           build-args: |
             DATABASE_URL=${{ secrets.DATABASE_URL || '' }}
             EXTERNAL_API_KEY=${{ secrets.EXTERNAL_API_KEY || secrets.EXTERNAL_API_KEY_PRIMARY || '' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
           provenance: false
