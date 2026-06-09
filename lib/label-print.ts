@@ -1,3 +1,5 @@
+import { buildTSPL } from './tspl';
+
 export type PrintableLabelPayload = {
   companyName?: string;
   productName: string;
@@ -11,28 +13,64 @@ export type PrintableLabelPayload = {
   qrCode: string;
 };
 
-export const buildLabelPrintUrl = (payload: PrintableLabelPayload) => {
-  const params = new URLSearchParams({
-    productName: payload.productName,
-    companyName: payload.companyName ?? '',
-    quantity: String(payload.quantity),
-    grossWeight: String(payload.grossWeight ?? payload.quantity),
-    netWeight: String(payload.netWeight ?? payload.quantity),
-    unit: payload.unit,
-    lotNumber: payload.lotNumber,
-    createdAt: payload.createdAt,
-    barcode: payload.barcode,
-    qrCode: payload.qrCode,
-  });
+export async function printLabel(
+  payload: PrintableLabelPayload,
+  scaleId?: string,
+): Promise<void> {
+  const grossW = payload.grossWeight ?? payload.quantity;
+  const netW = payload.netWeight ?? payload.quantity;
 
-  return `/print-label?${params.toString()}`;
-};
+  if (scaleId) {
+    const tspl = buildTSPL({
+      companyName: payload.companyName,
+      productName: payload.productName,
+      grossWeight: grossW,
+      netWeight: netW,
+      unit: payload.unit,
+      lotNumber: payload.lotNumber,
+      createdAt: payload.createdAt,
+      barcode: payload.barcode,
+      qrCode: payload.qrCode,
+    });
 
-export const openLabelPrintWindow = (payload: PrintableLabelPayload) => {
-  const url = buildLabelPrintUrl(payload);
-  const popup = window.open(url, '_blank', 'noopener,noreferrer');
-
-  if (!popup) {
-    window.location.assign(url);
+    try {
+      const res = await fetch('/api/print-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scaleId, payload: tspl }),
+      });
+      if (res.ok) {
+        return;
+      }
+    } catch {
+      // bridge offline — fall through
+    }
   }
-};
+
+  openLabelPrintWindow(payload);
+}
+
+export function openLabelPrintWindow(payload: PrintableLabelPayload): void {
+  const grossW = payload.grossWeight ?? payload.quantity;
+  const netW = payload.netWeight ?? payload.quantity;
+
+  localStorage.setItem(
+    'labelData',
+    JSON.stringify({
+      companyName: payload.companyName ?? '',
+      productName: payload.productName,
+      grossWeight: grossW,
+      netWeight: netW,
+      unit: payload.unit,
+      lotNumber: payload.lotNumber,
+      createdAt: payload.createdAt,
+      barcode: payload.barcode,
+      qrCode: payload.qrCode,
+    }),
+  );
+
+  const popup = window.open('/print-label', '_blank', 'noopener,noreferrer');
+  if (!popup) {
+    window.location.assign('/print-label');
+  }
+}

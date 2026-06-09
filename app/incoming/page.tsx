@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Barcode from 'react-barcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { AlertCircle, CheckCircle2, Loader2, Printer, RefreshCcw } from 'lucide-react';
-import { openLabelPrintWindow } from '@/lib/label-print';
+import { printLabel } from '@/lib/label-print';
 import { calculateNetWeight } from '@/lib/net-weight';
 
 type Product = {
@@ -163,22 +163,25 @@ export default function IncomingGoods() {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!generatedLot) return;
     const lotProduct = products.find((p) => p.id === generatedLot.productId);
 
-    openLabelPrintWindow({
-      companyName,
-      productName: lotProduct?.name || '-',
-      quantity: generatedLot.quantity,
-      grossWeight: Number(weight || selectedScale?.currentWeight || generatedLot.quantity),
-      netWeight: generatedLot.quantity,
-      unit: lotProduct?.unit || 'kg',
-      lotNumber: generatedLot.lotNumber,
-      createdAt: generatedLot.createdAt,
-      barcode: generatedLot.barcode,
-      qrCode: generatedLot.qrCode,
-    });
+    await printLabel(
+      {
+        companyName,
+        productName: lotProduct?.name || '-',
+        quantity: generatedLot.quantity,
+        grossWeight: Number(weight || selectedScale?.currentWeight || generatedLot.quantity),
+        netWeight: generatedLot.quantity,
+        unit: lotProduct?.unit || 'kg',
+        lotNumber: generatedLot.lotNumber,
+        createdAt: generatedLot.createdAt,
+        barcode: generatedLot.barcode,
+        qrCode: generatedLot.qrCode,
+      },
+      scaleId || undefined,
+    );
   };
 
   return (
