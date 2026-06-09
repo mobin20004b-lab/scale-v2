@@ -36,7 +36,7 @@ model Product {
   spoolsPerBag  Int               @default(12)
   spoolWeight   Float             @default(0)
   bagWeight     Float             @default(0)
-  brandName     String?           @default("نساجی زمرد")
+  brandName     String?           @default("نساجی زنبق")
   isDeleted     Boolean           @default(false)
   deletedAt     DateTime?
   createdAt     DateTime          @default(now())

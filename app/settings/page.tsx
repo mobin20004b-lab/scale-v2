@@ -12,7 +12,7 @@ interface SystemSettings {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
-    companyName: 'نساجی زمرد',
+    companyName: 'نساجی زنبق',
     allowUserRegistration: false,
     defaultRateLimit: 100,
     externalApiEnabled: true,

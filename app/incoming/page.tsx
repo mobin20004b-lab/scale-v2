@@ -47,7 +47,7 @@ export default function IncomingGoods() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   const [generatedLot, setGeneratedLot] = useState<LotReceipt | null>(null);
-  const [companyName, setCompanyName] = useState('نساجی زمرد');
+  const [companyName, setCompanyName] = useState('نساجی زنبق');
 
   const loadInitialData = async () => {
     setIsBootstrapping(true);
@@ -62,7 +62,7 @@ export default function IncomingGoods() {
       setProducts(pv);
       setWarehouses(wv);
       setScales(sv);
-      setCompanyName(String(settingsData?.settings?.companyName ?? 'نساجی زمرد'));
+      setCompanyName(String(settingsData?.settings?.companyName ?? 'نساجی زنبق'));
 
       setProductId((prev) => prev || pv[0]?.id || '');
       setWarehouseId((prev) => prev || wv[0]?.id || '');

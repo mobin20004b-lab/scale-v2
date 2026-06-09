@@ -23,6 +23,7 @@ export default async function PrintLabelPage({ searchParams }: PrintLabelPagePro
   const productName = getSearchValue(params.productName, '-');
   const companyName = getSearchValue(params.companyName, '');
   const unit = getSearchValue(params.unit, 'kg');
+  const lotNumber = getSearchValue(params.lotNumber, '-');
   const createdAt = getSearchValue(params.createdAt, '');
   const barcode = getSearchValue(params.barcode, '-');
   const qrCode = getSearchValue(params.qrCode, '-');
@@ -35,6 +36,7 @@ export default async function PrintLabelPage({ searchParams }: PrintLabelPagePro
       productName={productName}
       companyName={companyName}
       unit={unit}
+      lotNumber={lotNumber}
       createdAt={createdAt}
       barcode={barcode}
       qrCode={qrCode}

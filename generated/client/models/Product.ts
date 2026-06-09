@@ -20,8 +20,22 @@ export type ProductModel = runtime.Types.Result.DefaultSelection<Prisma.$Product
 
 export type AggregateProduct = {
   _count: ProductCountAggregateOutputType | null
+  _avg: ProductAvgAggregateOutputType | null
+  _sum: ProductSumAggregateOutputType | null
   _min: ProductMinAggregateOutputType | null
   _max: ProductMaxAggregateOutputType | null
+}
+
+export type ProductAvgAggregateOutputType = {
+  spoolsPerBag: number | null
+  spoolWeight: number | null
+  bagWeight: number | null
+}
+
+export type ProductSumAggregateOutputType = {
+  spoolsPerBag: number | null
+  spoolWeight: number | null
+  bagWeight: number | null
 }
 
 export type ProductMinAggregateOutputType = {
@@ -34,6 +48,10 @@ export type ProductMinAggregateOutputType = {
   qrCode: string | null
   category: string | null
   unit: string | null
+  spoolsPerBag: number | null
+  spoolWeight: number | null
+  bagWeight: number | null
+  brandName: string | null
   isDeleted: boolean | null
   deletedAt: Date | null
   createdAt: Date | null
@@ -50,6 +68,10 @@ export type ProductMaxAggregateOutputType = {
   qrCode: string | null
   category: string | null
   unit: string | null
+  spoolsPerBag: number | null
+  spoolWeight: number | null
+  bagWeight: number | null
+  brandName: string | null
   isDeleted: boolean | null
   deletedAt: Date | null
   createdAt: Date | null
@@ -66,6 +88,10 @@ export type ProductCountAggregateOutputType = {
   qrCode: number
   category: number
   unit: number
+  spoolsPerBag: number
+  spoolWeight: number
+  bagWeight: number
+  brandName: number
   isDeleted: number
   deletedAt: number
   createdAt: number
@@ -73,6 +99,18 @@ export type ProductCountAggregateOutputType = {
   _all: number
 }
 
+
+export type ProductAvgAggregateInputType = {
+  spoolsPerBag?: true
+  spoolWeight?: true
+  bagWeight?: true
+}
+
+export type ProductSumAggregateInputType = {
+  spoolsPerBag?: true
+  spoolWeight?: true
+  bagWeight?: true
+}
 
 export type ProductMinAggregateInputType = {
   id?: true
@@ -84,6 +122,10 @@ export type ProductMinAggregateInputType = {
   qrCode?: true
   category?: true
   unit?: true
+  spoolsPerBag?: true
+  spoolWeight?: true
+  bagWeight?: true
+  brandName?: true
   isDeleted?: true
   deletedAt?: true
   createdAt?: true
@@ -100,6 +142,10 @@ export type ProductMaxAggregateInputType = {
   qrCode?: true
   category?: true
   unit?: true
+  spoolsPerBag?: true
+  spoolWeight?: true
+  bagWeight?: true
+  brandName?: true
   isDeleted?: true
   deletedAt?: true
   createdAt?: true
@@ -116,6 +162,10 @@ export type ProductCountAggregateInputType = {
   qrCode?: true
   category?: true
   unit?: true
+  spoolsPerBag?: true
+  spoolWeight?: true
+  bagWeight?: true
+  brandName?: true
   isDeleted?: true
   deletedAt?: true
   createdAt?: true
@@ -161,6 +211,18 @@ export type ProductAggregateArgs<ExtArgs extends runtime.Types.Extensions.Intern
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: ProductAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: ProductSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: ProductMinAggregateInputType
@@ -191,6 +253,8 @@ export type ProductGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   _count?: ProductCountAggregateInputType | true
+  _avg?: ProductAvgAggregateInputType
+  _sum?: ProductSumAggregateInputType
   _min?: ProductMinAggregateInputType
   _max?: ProductMaxAggregateInputType
 }
@@ -205,11 +269,17 @@ export type ProductGroupByOutputType = {
   qrCode: string
   category: string | null
   unit: string
+  spoolsPerBag: number
+  spoolWeight: number
+  bagWeight: number
+  brandName: string | null
   isDeleted: boolean
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: ProductCountAggregateOutputType | null
+  _avg: ProductAvgAggregateOutputType | null
+  _sum: ProductSumAggregateOutputType | null
   _min: ProductMinAggregateOutputType | null
   _max: ProductMaxAggregateOutputType | null
 }
@@ -242,12 +312,17 @@ export type ProductWhereInput = {
   qrCode?: Prisma.StringFilter<"Product"> | string
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   unit?: Prisma.StringFilter<"Product"> | string
+  spoolsPerBag?: Prisma.IntFilter<"Product"> | number
+  spoolWeight?: Prisma.FloatFilter<"Product"> | number
+  bagWeight?: Prisma.FloatFilter<"Product"> | number
+  brandName?: Prisma.StringNullableFilter<"Product"> | string | null
   isDeleted?: Prisma.BoolFilter<"Product"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Product"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   ledgerEntries?: Prisma.InventoryLedgerListRelationFilter
   lots?: Prisma.LotListRelationFilter
+  orderItems?: Prisma.CustomerOrderItemListRelationFilter
 }
 
 export type ProductOrderByWithRelationInput = {
@@ -260,12 +335,17 @@ export type ProductOrderByWithRelationInput = {
   qrCode?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrder
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
+  brandName?: Prisma.SortOrderInput | Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   ledgerEntries?: Prisma.InventoryLedgerOrderByRelationAggregateInput
   lots?: Prisma.LotOrderByRelationAggregateInput
+  orderItems?: Prisma.CustomerOrderItemOrderByRelationAggregateInput
 }
 
 export type ProductWhereUniqueInput = Prisma.AtLeast<{
@@ -281,12 +361,17 @@ export type ProductWhereUniqueInput = Prisma.AtLeast<{
   descriptionFa?: Prisma.StringNullableFilter<"Product"> | string | null
   category?: Prisma.StringNullableFilter<"Product"> | string | null
   unit?: Prisma.StringFilter<"Product"> | string
+  spoolsPerBag?: Prisma.IntFilter<"Product"> | number
+  spoolWeight?: Prisma.FloatFilter<"Product"> | number
+  bagWeight?: Prisma.FloatFilter<"Product"> | number
+  brandName?: Prisma.StringNullableFilter<"Product"> | string | null
   isDeleted?: Prisma.BoolFilter<"Product"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Product"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Product"> | Date | string
   ledgerEntries?: Prisma.InventoryLedgerListRelationFilter
   lots?: Prisma.LotListRelationFilter
+  orderItems?: Prisma.CustomerOrderItemListRelationFilter
 }, "id" | "barcode" | "qrCode">
 
 export type ProductOrderByWithAggregationInput = {
@@ -299,13 +384,19 @@ export type ProductOrderByWithAggregationInput = {
   qrCode?: Prisma.SortOrder
   category?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrder
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
+  brandName?: Prisma.SortOrderInput | Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ProductCountOrderByAggregateInput
+  _avg?: Prisma.ProductAvgOrderByAggregateInput
   _max?: Prisma.ProductMaxOrderByAggregateInput
   _min?: Prisma.ProductMinOrderByAggregateInput
+  _sum?: Prisma.ProductSumOrderByAggregateInput
 }
 
 export type ProductScalarWhereWithAggregatesInput = {
@@ -321,6 +412,10 @@ export type ProductScalarWhereWithAggregatesInput = {
   qrCode?: Prisma.StringWithAggregatesFilter<"Product"> | string
   category?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   unit?: Prisma.StringWithAggregatesFilter<"Product"> | string
+  spoolsPerBag?: Prisma.IntWithAggregatesFilter<"Product"> | number
+  spoolWeight?: Prisma.FloatWithAggregatesFilter<"Product"> | number
+  bagWeight?: Prisma.FloatWithAggregatesFilter<"Product"> | number
+  brandName?: Prisma.StringNullableWithAggregatesFilter<"Product"> | string | null
   isDeleted?: Prisma.BoolWithAggregatesFilter<"Product"> | boolean
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Product"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Product"> | Date | string
@@ -337,12 +432,17 @@ export type ProductCreateInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ledgerEntries?: Prisma.InventoryLedgerCreateNestedManyWithoutProductInput
   lots?: Prisma.LotCreateNestedManyWithoutProductInput
+  orderItems?: Prisma.CustomerOrderItemCreateNestedManyWithoutProductInput
 }
 
 export type ProductUncheckedCreateInput = {
@@ -355,12 +455,17 @@ export type ProductUncheckedCreateInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ledgerEntries?: Prisma.InventoryLedgerUncheckedCreateNestedManyWithoutProductInput
   lots?: Prisma.LotUncheckedCreateNestedManyWithoutProductInput
+  orderItems?: Prisma.CustomerOrderItemUncheckedCreateNestedManyWithoutProductInput
 }
 
 export type ProductUpdateInput = {
@@ -373,12 +478,17 @@ export type ProductUpdateInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledgerEntries?: Prisma.InventoryLedgerUpdateManyWithoutProductNestedInput
   lots?: Prisma.LotUpdateManyWithoutProductNestedInput
+  orderItems?: Prisma.CustomerOrderItemUpdateManyWithoutProductNestedInput
 }
 
 export type ProductUncheckedUpdateInput = {
@@ -391,12 +501,17 @@ export type ProductUncheckedUpdateInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledgerEntries?: Prisma.InventoryLedgerUncheckedUpdateManyWithoutProductNestedInput
   lots?: Prisma.LotUncheckedUpdateManyWithoutProductNestedInput
+  orderItems?: Prisma.CustomerOrderItemUncheckedUpdateManyWithoutProductNestedInput
 }
 
 export type ProductCreateManyInput = {
@@ -409,6 +524,10 @@ export type ProductCreateManyInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
@@ -425,6 +544,10 @@ export type ProductUpdateManyMutationInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -441,6 +564,10 @@ export type ProductUncheckedUpdateManyInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -457,10 +584,20 @@ export type ProductCountOrderByAggregateInput = {
   qrCode?: Prisma.SortOrder
   category?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
+  brandName?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type ProductAvgOrderByAggregateInput = {
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
 }
 
 export type ProductMaxOrderByAggregateInput = {
@@ -473,6 +610,10 @@ export type ProductMaxOrderByAggregateInput = {
   qrCode?: Prisma.SortOrder
   category?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
+  brandName?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -489,10 +630,20 @@ export type ProductMinOrderByAggregateInput = {
   qrCode?: Prisma.SortOrder
   category?: Prisma.SortOrder
   unit?: Prisma.SortOrder
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
+  brandName?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type ProductSumOrderByAggregateInput = {
+  spoolsPerBag?: Prisma.SortOrder
+  spoolWeight?: Prisma.SortOrder
+  bagWeight?: Prisma.SortOrder
 }
 
 export type ProductScalarRelationFilter = {
@@ -502,6 +653,22 @@ export type ProductScalarRelationFilter = {
 
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
+}
+
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type FloatFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -536,6 +703,20 @@ export type ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutLedgerEntriesInput, Prisma.ProductUpdateWithoutLedgerEntriesInput>, Prisma.ProductUncheckedUpdateWithoutLedgerEntriesInput>
 }
 
+export type ProductCreateNestedOneWithoutOrderItemsInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutOrderItemsInput, Prisma.ProductUncheckedCreateWithoutOrderItemsInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutOrderItemsInput
+  connect?: Prisma.ProductWhereUniqueInput
+}
+
+export type ProductUpdateOneRequiredWithoutOrderItemsNestedInput = {
+  create?: Prisma.XOR<Prisma.ProductCreateWithoutOrderItemsInput, Prisma.ProductUncheckedCreateWithoutOrderItemsInput>
+  connectOrCreate?: Prisma.ProductCreateOrConnectWithoutOrderItemsInput
+  upsert?: Prisma.ProductUpsertWithoutOrderItemsInput
+  connect?: Prisma.ProductWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProductUpdateToOneWithWhereWithoutOrderItemsInput, Prisma.ProductUpdateWithoutOrderItemsInput>, Prisma.ProductUncheckedUpdateWithoutOrderItemsInput>
+}
+
 export type ProductCreateWithoutLotsInput = {
   id?: string
   name: string
@@ -546,11 +727,16 @@ export type ProductCreateWithoutLotsInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ledgerEntries?: Prisma.InventoryLedgerCreateNestedManyWithoutProductInput
+  orderItems?: Prisma.CustomerOrderItemCreateNestedManyWithoutProductInput
 }
 
 export type ProductUncheckedCreateWithoutLotsInput = {
@@ -563,11 +749,16 @@ export type ProductUncheckedCreateWithoutLotsInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   ledgerEntries?: Prisma.InventoryLedgerUncheckedCreateNestedManyWithoutProductInput
+  orderItems?: Prisma.CustomerOrderItemUncheckedCreateNestedManyWithoutProductInput
 }
 
 export type ProductCreateOrConnectWithoutLotsInput = {
@@ -596,11 +787,16 @@ export type ProductUpdateWithoutLotsInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledgerEntries?: Prisma.InventoryLedgerUpdateManyWithoutProductNestedInput
+  orderItems?: Prisma.CustomerOrderItemUpdateManyWithoutProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutLotsInput = {
@@ -613,11 +809,16 @@ export type ProductUncheckedUpdateWithoutLotsInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   ledgerEntries?: Prisma.InventoryLedgerUncheckedUpdateManyWithoutProductNestedInput
+  orderItems?: Prisma.CustomerOrderItemUncheckedUpdateManyWithoutProductNestedInput
 }
 
 export type ProductCreateWithoutLedgerEntriesInput = {
@@ -630,11 +831,16 @@ export type ProductCreateWithoutLedgerEntriesInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   lots?: Prisma.LotCreateNestedManyWithoutProductInput
+  orderItems?: Prisma.CustomerOrderItemCreateNestedManyWithoutProductInput
 }
 
 export type ProductUncheckedCreateWithoutLedgerEntriesInput = {
@@ -647,11 +853,16 @@ export type ProductUncheckedCreateWithoutLedgerEntriesInput = {
   qrCode: string
   category?: string | null
   unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   lots?: Prisma.LotUncheckedCreateNestedManyWithoutProductInput
+  orderItems?: Prisma.CustomerOrderItemUncheckedCreateNestedManyWithoutProductInput
 }
 
 export type ProductCreateOrConnectWithoutLedgerEntriesInput = {
@@ -680,11 +891,16 @@ export type ProductUpdateWithoutLedgerEntriesInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lots?: Prisma.LotUpdateManyWithoutProductNestedInput
+  orderItems?: Prisma.CustomerOrderItemUpdateManyWithoutProductNestedInput
 }
 
 export type ProductUncheckedUpdateWithoutLedgerEntriesInput = {
@@ -697,10 +913,119 @@ export type ProductUncheckedUpdateWithoutLedgerEntriesInput = {
   qrCode?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lots?: Prisma.LotUncheckedUpdateManyWithoutProductNestedInput
+  orderItems?: Prisma.CustomerOrderItemUncheckedUpdateManyWithoutProductNestedInput
+}
+
+export type ProductCreateWithoutOrderItemsInput = {
+  id?: string
+  name: string
+  nameFa?: string | null
+  description?: string | null
+  descriptionFa?: string | null
+  barcode: string
+  qrCode: string
+  category?: string | null
+  unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ledgerEntries?: Prisma.InventoryLedgerCreateNestedManyWithoutProductInput
+  lots?: Prisma.LotCreateNestedManyWithoutProductInput
+}
+
+export type ProductUncheckedCreateWithoutOrderItemsInput = {
+  id?: string
+  name: string
+  nameFa?: string | null
+  description?: string | null
+  descriptionFa?: string | null
+  barcode: string
+  qrCode: string
+  category?: string | null
+  unit?: string
+  spoolsPerBag?: number
+  spoolWeight?: number
+  bagWeight?: number
+  brandName?: string | null
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  ledgerEntries?: Prisma.InventoryLedgerUncheckedCreateNestedManyWithoutProductInput
+  lots?: Prisma.LotUncheckedCreateNestedManyWithoutProductInput
+}
+
+export type ProductCreateOrConnectWithoutOrderItemsInput = {
+  where: Prisma.ProductWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProductCreateWithoutOrderItemsInput, Prisma.ProductUncheckedCreateWithoutOrderItemsInput>
+}
+
+export type ProductUpsertWithoutOrderItemsInput = {
+  update: Prisma.XOR<Prisma.ProductUpdateWithoutOrderItemsInput, Prisma.ProductUncheckedUpdateWithoutOrderItemsInput>
+  create: Prisma.XOR<Prisma.ProductCreateWithoutOrderItemsInput, Prisma.ProductUncheckedCreateWithoutOrderItemsInput>
+  where?: Prisma.ProductWhereInput
+}
+
+export type ProductUpdateToOneWithWhereWithoutOrderItemsInput = {
+  where?: Prisma.ProductWhereInput
+  data: Prisma.XOR<Prisma.ProductUpdateWithoutOrderItemsInput, Prisma.ProductUncheckedUpdateWithoutOrderItemsInput>
+}
+
+export type ProductUpdateWithoutOrderItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameFa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  descriptionFa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barcode?: Prisma.StringFieldUpdateOperationsInput | string
+  qrCode?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ledgerEntries?: Prisma.InventoryLedgerUpdateManyWithoutProductNestedInput
+  lots?: Prisma.LotUpdateManyWithoutProductNestedInput
+}
+
+export type ProductUncheckedUpdateWithoutOrderItemsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameFa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  descriptionFa?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  barcode?: Prisma.StringFieldUpdateOperationsInput | string
+  qrCode?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  spoolsPerBag?: Prisma.IntFieldUpdateOperationsInput | number
+  spoolWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  bagWeight?: Prisma.FloatFieldUpdateOperationsInput | number
+  brandName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  ledgerEntries?: Prisma.InventoryLedgerUncheckedUpdateManyWithoutProductNestedInput
   lots?: Prisma.LotUncheckedUpdateManyWithoutProductNestedInput
 }
 
@@ -712,11 +1037,13 @@ export type ProductUncheckedUpdateWithoutLedgerEntriesInput = {
 export type ProductCountOutputType = {
   ledgerEntries: number
   lots: number
+  orderItems: number
 }
 
 export type ProductCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ledgerEntries?: boolean | ProductCountOutputTypeCountLedgerEntriesArgs
   lots?: boolean | ProductCountOutputTypeCountLotsArgs
+  orderItems?: boolean | ProductCountOutputTypeCountOrderItemsArgs
 }
 
 /**
@@ -743,6 +1070,13 @@ export type ProductCountOutputTypeCountLotsArgs<ExtArgs extends runtime.Types.Ex
   where?: Prisma.LotWhereInput
 }
 
+/**
+ * ProductCountOutputType without action
+ */
+export type ProductCountOutputTypeCountOrderItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CustomerOrderItemWhereInput
+}
+
 
 export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -754,12 +1088,17 @@ export type ProductSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   qrCode?: boolean
   category?: boolean
   unit?: boolean
+  spoolsPerBag?: boolean
+  spoolWeight?: boolean
+  bagWeight?: boolean
+  brandName?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   ledgerEntries?: boolean | Prisma.Product$ledgerEntriesArgs<ExtArgs>
   lots?: boolean | Prisma.Product$lotsArgs<ExtArgs>
+  orderItems?: boolean | Prisma.Product$orderItemsArgs<ExtArgs>
   _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["product"]>
 
@@ -773,6 +1112,10 @@ export type ProductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   qrCode?: boolean
   category?: boolean
   unit?: boolean
+  spoolsPerBag?: boolean
+  spoolWeight?: boolean
+  bagWeight?: boolean
+  brandName?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   createdAt?: boolean
@@ -789,6 +1132,10 @@ export type ProductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   qrCode?: boolean
   category?: boolean
   unit?: boolean
+  spoolsPerBag?: boolean
+  spoolWeight?: boolean
+  bagWeight?: boolean
+  brandName?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   createdAt?: boolean
@@ -805,16 +1152,21 @@ export type ProductSelectScalar = {
   qrCode?: boolean
   category?: boolean
   unit?: boolean
+  spoolsPerBag?: boolean
+  spoolWeight?: boolean
+  bagWeight?: boolean
+  brandName?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameFa" | "description" | "descriptionFa" | "barcode" | "qrCode" | "category" | "unit" | "isDeleted" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+export type ProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameFa" | "description" | "descriptionFa" | "barcode" | "qrCode" | "category" | "unit" | "spoolsPerBag" | "spoolWeight" | "bagWeight" | "brandName" | "isDeleted" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
 export type ProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   ledgerEntries?: boolean | Prisma.Product$ledgerEntriesArgs<ExtArgs>
   lots?: boolean | Prisma.Product$lotsArgs<ExtArgs>
+  orderItems?: boolean | Prisma.Product$orderItemsArgs<ExtArgs>
   _count?: boolean | Prisma.ProductCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProductIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -825,6 +1177,7 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     ledgerEntries: Prisma.$InventoryLedgerPayload<ExtArgs>[]
     lots: Prisma.$LotPayload<ExtArgs>[]
+    orderItems: Prisma.$CustomerOrderItemPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -836,6 +1189,10 @@ export type $ProductPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     qrCode: string
     category: string | null
     unit: string
+    spoolsPerBag: number
+    spoolWeight: number
+    bagWeight: number
+    brandName: string | null
     isDeleted: boolean
     deletedAt: Date | null
     createdAt: Date
@@ -1236,6 +1593,7 @@ export interface Prisma__ProductClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   ledgerEntries<T extends Prisma.Product$ledgerEntriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$ledgerEntriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InventoryLedgerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   lots<T extends Prisma.Product$lotsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$lotsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  orderItems<T extends Prisma.Product$orderItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Product$orderItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CustomerOrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1274,6 +1632,10 @@ export interface ProductFieldRefs {
   readonly qrCode: Prisma.FieldRef<"Product", 'String'>
   readonly category: Prisma.FieldRef<"Product", 'String'>
   readonly unit: Prisma.FieldRef<"Product", 'String'>
+  readonly spoolsPerBag: Prisma.FieldRef<"Product", 'Int'>
+  readonly spoolWeight: Prisma.FieldRef<"Product", 'Float'>
+  readonly bagWeight: Prisma.FieldRef<"Product", 'Float'>
+  readonly brandName: Prisma.FieldRef<"Product", 'String'>
   readonly isDeleted: Prisma.FieldRef<"Product", 'Boolean'>
   readonly deletedAt: Prisma.FieldRef<"Product", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Product", 'DateTime'>
@@ -1711,6 +2073,30 @@ export type Product$lotsArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
   take?: number
   skip?: number
   distinct?: Prisma.LotScalarFieldEnum | Prisma.LotScalarFieldEnum[]
+}
+
+/**
+ * Product.orderItems
+ */
+export type Product$orderItemsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CustomerOrderItem
+   */
+  select?: Prisma.CustomerOrderItemSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CustomerOrderItem
+   */
+  omit?: Prisma.CustomerOrderItemOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CustomerOrderItemInclude<ExtArgs> | null
+  where?: Prisma.CustomerOrderItemWhereInput
+  orderBy?: Prisma.CustomerOrderItemOrderByWithRelationInput | Prisma.CustomerOrderItemOrderByWithRelationInput[]
+  cursor?: Prisma.CustomerOrderItemWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CustomerOrderItemScalarFieldEnum | Prisma.CustomerOrderItemScalarFieldEnum[]
 }
 
 /**

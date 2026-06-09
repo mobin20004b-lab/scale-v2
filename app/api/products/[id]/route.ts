@@ -61,7 +61,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         spoolsPerBag: Number(data.spoolsPerBag ?? 12),
         spoolWeight: Number(data.spoolWeight ?? 0),
         bagWeight: Number(data.bagWeight ?? 0),
-        brandName: data.brandName || 'نساجی زمرد',
+        brandName: data.brandName || 'نساجی زنبق',
       }
     });
 

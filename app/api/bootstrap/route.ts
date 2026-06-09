@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   const email = String(data.email ?? '').trim().toLowerCase();
   const password = String(data.password ?? '');
   const warehouseName = String(data.warehouseName ?? '').trim();
-  const companyName = String(data.companyName ?? 'نساجی زمرد').trim() || 'نساجی زمرد';
+  const companyName = String(data.companyName ?? 'نساجی زنبق').trim() || 'نساجی زنبق';
 
   if (!name || !username || !email || !password || password.length < 6 || !warehouseName) {
     return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 });

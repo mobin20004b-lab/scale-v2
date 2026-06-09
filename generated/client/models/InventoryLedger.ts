@@ -44,6 +44,8 @@ export type InventoryLedgerMinAggregateOutputType = {
   sourceTxId: string | null
   createdAt: Date | null
   createdBy: string | null
+  customerId: string | null
+  customerOrderId: string | null
   productId: string | null
   warehouseId: string | null
   scaleId: string | null
@@ -58,6 +60,8 @@ export type InventoryLedgerMaxAggregateOutputType = {
   sourceTxId: string | null
   createdAt: Date | null
   createdBy: string | null
+  customerId: string | null
+  customerOrderId: string | null
   productId: string | null
   warehouseId: string | null
   scaleId: string | null
@@ -72,6 +76,8 @@ export type InventoryLedgerCountAggregateOutputType = {
   sourceTxId: number
   createdAt: number
   createdBy: number
+  customerId: number
+  customerOrderId: number
   productId: number
   warehouseId: number
   scaleId: number
@@ -98,6 +104,8 @@ export type InventoryLedgerMinAggregateInputType = {
   sourceTxId?: true
   createdAt?: true
   createdBy?: true
+  customerId?: true
+  customerOrderId?: true
   productId?: true
   warehouseId?: true
   scaleId?: true
@@ -112,6 +120,8 @@ export type InventoryLedgerMaxAggregateInputType = {
   sourceTxId?: true
   createdAt?: true
   createdBy?: true
+  customerId?: true
+  customerOrderId?: true
   productId?: true
   warehouseId?: true
   scaleId?: true
@@ -126,6 +136,8 @@ export type InventoryLedgerCountAggregateInputType = {
   sourceTxId?: true
   createdAt?: true
   createdBy?: true
+  customerId?: true
+  customerOrderId?: true
   productId?: true
   warehouseId?: true
   scaleId?: true
@@ -227,6 +239,8 @@ export type InventoryLedgerGroupByOutputType = {
   sourceTxId: string | null
   createdAt: Date
   createdBy: string | null
+  customerId: string | null
+  customerOrderId: string | null
   productId: string
   warehouseId: string
   scaleId: string | null
@@ -264,10 +278,14 @@ export type InventoryLedgerWhereInput = {
   sourceTxId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   createdAt?: Prisma.DateTimeFilter<"InventoryLedger"> | Date | string
   createdBy?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customerId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customerOrderId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   productId?: Prisma.StringFilter<"InventoryLedger"> | string
   warehouseId?: Prisma.StringFilter<"InventoryLedger"> | string
   scaleId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   lotId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customer?: Prisma.XOR<Prisma.CustomerNullableScalarRelationFilter, Prisma.CustomerWhereInput> | null
+  customerOrder?: Prisma.XOR<Prisma.CustomerOrderNullableScalarRelationFilter, Prisma.CustomerOrderWhereInput> | null
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   scale?: Prisma.XOR<Prisma.ScaleNullableScalarRelationFilter, Prisma.ScaleWhereInput> | null
   warehouse?: Prisma.XOR<Prisma.WarehouseScalarRelationFilter, Prisma.WarehouseWhereInput>
@@ -282,10 +300,14 @@ export type InventoryLedgerOrderByWithRelationInput = {
   sourceTxId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   createdBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  customerId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customerOrderId?: Prisma.SortOrderInput | Prisma.SortOrder
   productId?: Prisma.SortOrder
   warehouseId?: Prisma.SortOrder
   scaleId?: Prisma.SortOrderInput | Prisma.SortOrder
   lotId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customer?: Prisma.CustomerOrderByWithRelationInput
+  customerOrder?: Prisma.CustomerOrderOrderByWithRelationInput
   product?: Prisma.ProductOrderByWithRelationInput
   scale?: Prisma.ScaleOrderByWithRelationInput
   warehouse?: Prisma.WarehouseOrderByWithRelationInput
@@ -294,6 +316,7 @@ export type InventoryLedgerOrderByWithRelationInput = {
 
 export type InventoryLedgerWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  customerOrderId?: string
   AND?: Prisma.InventoryLedgerWhereInput | Prisma.InventoryLedgerWhereInput[]
   OR?: Prisma.InventoryLedgerWhereInput[]
   NOT?: Prisma.InventoryLedgerWhereInput | Prisma.InventoryLedgerWhereInput[]
@@ -303,15 +326,18 @@ export type InventoryLedgerWhereUniqueInput = Prisma.AtLeast<{
   sourceTxId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   createdAt?: Prisma.DateTimeFilter<"InventoryLedger"> | Date | string
   createdBy?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customerId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   productId?: Prisma.StringFilter<"InventoryLedger"> | string
   warehouseId?: Prisma.StringFilter<"InventoryLedger"> | string
   scaleId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   lotId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customer?: Prisma.XOR<Prisma.CustomerNullableScalarRelationFilter, Prisma.CustomerWhereInput> | null
+  customerOrder?: Prisma.XOR<Prisma.CustomerOrderNullableScalarRelationFilter, Prisma.CustomerOrderWhereInput> | null
   product?: Prisma.XOR<Prisma.ProductScalarRelationFilter, Prisma.ProductWhereInput>
   scale?: Prisma.XOR<Prisma.ScaleNullableScalarRelationFilter, Prisma.ScaleWhereInput> | null
   warehouse?: Prisma.XOR<Prisma.WarehouseScalarRelationFilter, Prisma.WarehouseWhereInput>
   lot?: Prisma.XOR<Prisma.LotNullableScalarRelationFilter, Prisma.LotWhereInput> | null
-}, "id">
+}, "id" | "customerOrderId">
 
 export type InventoryLedgerOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -321,6 +347,8 @@ export type InventoryLedgerOrderByWithAggregationInput = {
   sourceTxId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   createdBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  customerId?: Prisma.SortOrderInput | Prisma.SortOrder
+  customerOrderId?: Prisma.SortOrderInput | Prisma.SortOrder
   productId?: Prisma.SortOrder
   warehouseId?: Prisma.SortOrder
   scaleId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -343,6 +371,8 @@ export type InventoryLedgerScalarWhereWithAggregatesInput = {
   sourceTxId?: Prisma.StringNullableWithAggregatesFilter<"InventoryLedger"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"InventoryLedger"> | Date | string
   createdBy?: Prisma.StringNullableWithAggregatesFilter<"InventoryLedger"> | string | null
+  customerId?: Prisma.StringNullableWithAggregatesFilter<"InventoryLedger"> | string | null
+  customerOrderId?: Prisma.StringNullableWithAggregatesFilter<"InventoryLedger"> | string | null
   productId?: Prisma.StringWithAggregatesFilter<"InventoryLedger"> | string
   warehouseId?: Prisma.StringWithAggregatesFilter<"InventoryLedger"> | string
   scaleId?: Prisma.StringNullableWithAggregatesFilter<"InventoryLedger"> | string | null
@@ -357,6 +387,8 @@ export type InventoryLedgerCreateInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customer?: Prisma.CustomerCreateNestedOneWithoutLedgersInput
+  customerOrder?: Prisma.CustomerOrderCreateNestedOneWithoutLedgerInput
   product: Prisma.ProductCreateNestedOneWithoutLedgerEntriesInput
   scale?: Prisma.ScaleCreateNestedOneWithoutLedgerEntriesInput
   warehouse: Prisma.WarehouseCreateNestedOneWithoutLedgerEntriesInput
@@ -371,6 +403,8 @@ export type InventoryLedgerUncheckedCreateInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   warehouseId: string
   scaleId?: string | null
@@ -385,6 +419,8 @@ export type InventoryLedgerUpdateInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer?: Prisma.CustomerUpdateOneWithoutLedgersNestedInput
+  customerOrder?: Prisma.CustomerOrderUpdateOneWithoutLedgerNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput
   scale?: Prisma.ScaleUpdateOneWithoutLedgerEntriesNestedInput
   warehouse?: Prisma.WarehouseUpdateOneRequiredWithoutLedgerEntriesNestedInput
@@ -399,6 +435,8 @@ export type InventoryLedgerUncheckedUpdateInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -413,6 +451,8 @@ export type InventoryLedgerCreateManyInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   warehouseId: string
   scaleId?: string | null
@@ -437,6 +477,8 @@ export type InventoryLedgerUncheckedUpdateManyInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -461,6 +503,8 @@ export type InventoryLedgerCountOrderByAggregateInput = {
   sourceTxId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
+  customerId?: Prisma.SortOrder
+  customerOrderId?: Prisma.SortOrder
   productId?: Prisma.SortOrder
   warehouseId?: Prisma.SortOrder
   scaleId?: Prisma.SortOrder
@@ -480,6 +524,8 @@ export type InventoryLedgerMaxOrderByAggregateInput = {
   sourceTxId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
+  customerId?: Prisma.SortOrder
+  customerOrderId?: Prisma.SortOrder
   productId?: Prisma.SortOrder
   warehouseId?: Prisma.SortOrder
   scaleId?: Prisma.SortOrder
@@ -494,6 +540,8 @@ export type InventoryLedgerMinOrderByAggregateInput = {
   sourceTxId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
+  customerId?: Prisma.SortOrder
+  customerOrderId?: Prisma.SortOrder
   productId?: Prisma.SortOrder
   warehouseId?: Prisma.SortOrder
   scaleId?: Prisma.SortOrder
@@ -503,6 +551,11 @@ export type InventoryLedgerMinOrderByAggregateInput = {
 export type InventoryLedgerSumOrderByAggregateInput = {
   quantity?: Prisma.SortOrder
   weight?: Prisma.SortOrder
+}
+
+export type InventoryLedgerNullableScalarRelationFilter = {
+  is?: Prisma.InventoryLedgerWhereInput | null
+  isNot?: Prisma.InventoryLedgerWhereInput | null
 }
 
 export type InventoryLedgerCreateNestedManyWithoutProductInput = {
@@ -685,6 +738,80 @@ export type NullableFloatFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type InventoryLedgerCreateNestedManyWithoutCustomerInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput> | Prisma.InventoryLedgerCreateWithoutCustomerInput[] | Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput[]
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput | Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput[]
+  createMany?: Prisma.InventoryLedgerCreateManyCustomerInputEnvelope
+  connect?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+}
+
+export type InventoryLedgerUncheckedCreateNestedManyWithoutCustomerInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput> | Prisma.InventoryLedgerCreateWithoutCustomerInput[] | Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput[]
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput | Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput[]
+  createMany?: Prisma.InventoryLedgerCreateManyCustomerInputEnvelope
+  connect?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+}
+
+export type InventoryLedgerUpdateManyWithoutCustomerNestedInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput> | Prisma.InventoryLedgerCreateWithoutCustomerInput[] | Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput[]
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput | Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput[]
+  upsert?: Prisma.InventoryLedgerUpsertWithWhereUniqueWithoutCustomerInput | Prisma.InventoryLedgerUpsertWithWhereUniqueWithoutCustomerInput[]
+  createMany?: Prisma.InventoryLedgerCreateManyCustomerInputEnvelope
+  set?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  disconnect?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  delete?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  connect?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  update?: Prisma.InventoryLedgerUpdateWithWhereUniqueWithoutCustomerInput | Prisma.InventoryLedgerUpdateWithWhereUniqueWithoutCustomerInput[]
+  updateMany?: Prisma.InventoryLedgerUpdateManyWithWhereWithoutCustomerInput | Prisma.InventoryLedgerUpdateManyWithWhereWithoutCustomerInput[]
+  deleteMany?: Prisma.InventoryLedgerScalarWhereInput | Prisma.InventoryLedgerScalarWhereInput[]
+}
+
+export type InventoryLedgerUncheckedUpdateManyWithoutCustomerNestedInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput> | Prisma.InventoryLedgerCreateWithoutCustomerInput[] | Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput[]
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput | Prisma.InventoryLedgerCreateOrConnectWithoutCustomerInput[]
+  upsert?: Prisma.InventoryLedgerUpsertWithWhereUniqueWithoutCustomerInput | Prisma.InventoryLedgerUpsertWithWhereUniqueWithoutCustomerInput[]
+  createMany?: Prisma.InventoryLedgerCreateManyCustomerInputEnvelope
+  set?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  disconnect?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  delete?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  connect?: Prisma.InventoryLedgerWhereUniqueInput | Prisma.InventoryLedgerWhereUniqueInput[]
+  update?: Prisma.InventoryLedgerUpdateWithWhereUniqueWithoutCustomerInput | Prisma.InventoryLedgerUpdateWithWhereUniqueWithoutCustomerInput[]
+  updateMany?: Prisma.InventoryLedgerUpdateManyWithWhereWithoutCustomerInput | Prisma.InventoryLedgerUpdateManyWithWhereWithoutCustomerInput[]
+  deleteMany?: Prisma.InventoryLedgerScalarWhereInput | Prisma.InventoryLedgerScalarWhereInput[]
+}
+
+export type InventoryLedgerCreateNestedOneWithoutCustomerOrderInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerOrderInput>
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerOrderInput
+  connect?: Prisma.InventoryLedgerWhereUniqueInput
+}
+
+export type InventoryLedgerUncheckedCreateNestedOneWithoutCustomerOrderInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerOrderInput>
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerOrderInput
+  connect?: Prisma.InventoryLedgerWhereUniqueInput
+}
+
+export type InventoryLedgerUpdateOneWithoutCustomerOrderNestedInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerOrderInput>
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerOrderInput
+  upsert?: Prisma.InventoryLedgerUpsertWithoutCustomerOrderInput
+  disconnect?: Prisma.InventoryLedgerWhereInput | boolean
+  delete?: Prisma.InventoryLedgerWhereInput | boolean
+  connect?: Prisma.InventoryLedgerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.InventoryLedgerUpdateToOneWithWhereWithoutCustomerOrderInput, Prisma.InventoryLedgerUpdateWithoutCustomerOrderInput>, Prisma.InventoryLedgerUncheckedUpdateWithoutCustomerOrderInput>
+}
+
+export type InventoryLedgerUncheckedUpdateOneWithoutCustomerOrderNestedInput = {
+  create?: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerOrderInput>
+  connectOrCreate?: Prisma.InventoryLedgerCreateOrConnectWithoutCustomerOrderInput
+  upsert?: Prisma.InventoryLedgerUpsertWithoutCustomerOrderInput
+  disconnect?: Prisma.InventoryLedgerWhereInput | boolean
+  delete?: Prisma.InventoryLedgerWhereInput | boolean
+  connect?: Prisma.InventoryLedgerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.InventoryLedgerUpdateToOneWithWhereWithoutCustomerOrderInput, Prisma.InventoryLedgerUpdateWithoutCustomerOrderInput>, Prisma.InventoryLedgerUncheckedUpdateWithoutCustomerOrderInput>
+}
+
 export type InventoryLedgerCreateWithoutProductInput = {
   id?: string
   type: $Enums.LedgerType
@@ -693,6 +820,8 @@ export type InventoryLedgerCreateWithoutProductInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customer?: Prisma.CustomerCreateNestedOneWithoutLedgersInput
+  customerOrder?: Prisma.CustomerOrderCreateNestedOneWithoutLedgerInput
   scale?: Prisma.ScaleCreateNestedOneWithoutLedgerEntriesInput
   warehouse: Prisma.WarehouseCreateNestedOneWithoutLedgerEntriesInput
   lot?: Prisma.LotCreateNestedOneWithoutLedgerEntriesInput
@@ -706,6 +835,8 @@ export type InventoryLedgerUncheckedCreateWithoutProductInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   warehouseId: string
   scaleId?: string | null
   lotId?: string | null
@@ -748,6 +879,8 @@ export type InventoryLedgerScalarWhereInput = {
   sourceTxId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   createdAt?: Prisma.DateTimeFilter<"InventoryLedger"> | Date | string
   createdBy?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customerId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
+  customerOrderId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
   productId?: Prisma.StringFilter<"InventoryLedger"> | string
   warehouseId?: Prisma.StringFilter<"InventoryLedger"> | string
   scaleId?: Prisma.StringNullableFilter<"InventoryLedger"> | string | null
@@ -762,6 +895,8 @@ export type InventoryLedgerCreateWithoutLotInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customer?: Prisma.CustomerCreateNestedOneWithoutLedgersInput
+  customerOrder?: Prisma.CustomerOrderCreateNestedOneWithoutLedgerInput
   product: Prisma.ProductCreateNestedOneWithoutLedgerEntriesInput
   scale?: Prisma.ScaleCreateNestedOneWithoutLedgerEntriesInput
   warehouse: Prisma.WarehouseCreateNestedOneWithoutLedgerEntriesInput
@@ -775,6 +910,8 @@ export type InventoryLedgerUncheckedCreateWithoutLotInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   warehouseId: string
   scaleId?: string | null
@@ -814,6 +951,8 @@ export type InventoryLedgerCreateWithoutWarehouseInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customer?: Prisma.CustomerCreateNestedOneWithoutLedgersInput
+  customerOrder?: Prisma.CustomerOrderCreateNestedOneWithoutLedgerInput
   product: Prisma.ProductCreateNestedOneWithoutLedgerEntriesInput
   scale?: Prisma.ScaleCreateNestedOneWithoutLedgerEntriesInput
   lot?: Prisma.LotCreateNestedOneWithoutLedgerEntriesInput
@@ -827,6 +966,8 @@ export type InventoryLedgerUncheckedCreateWithoutWarehouseInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   scaleId?: string | null
   lotId?: string | null
@@ -866,6 +1007,8 @@ export type InventoryLedgerCreateWithoutScaleInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customer?: Prisma.CustomerCreateNestedOneWithoutLedgersInput
+  customerOrder?: Prisma.CustomerOrderCreateNestedOneWithoutLedgerInput
   product: Prisma.ProductCreateNestedOneWithoutLedgerEntriesInput
   warehouse: Prisma.WarehouseCreateNestedOneWithoutLedgerEntriesInput
   lot?: Prisma.LotCreateNestedOneWithoutLedgerEntriesInput
@@ -879,6 +1022,8 @@ export type InventoryLedgerUncheckedCreateWithoutScaleInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   warehouseId: string
   lotId?: string | null
@@ -910,6 +1055,138 @@ export type InventoryLedgerUpdateManyWithWhereWithoutScaleInput = {
   data: Prisma.XOR<Prisma.InventoryLedgerUpdateManyMutationInput, Prisma.InventoryLedgerUncheckedUpdateManyWithoutScaleInput>
 }
 
+export type InventoryLedgerCreateWithoutCustomerInput = {
+  id?: string
+  type: $Enums.LedgerType
+  quantity: number
+  weight?: number | null
+  sourceTxId?: string | null
+  createdAt?: Date | string
+  createdBy?: string | null
+  customerOrder?: Prisma.CustomerOrderCreateNestedOneWithoutLedgerInput
+  product: Prisma.ProductCreateNestedOneWithoutLedgerEntriesInput
+  scale?: Prisma.ScaleCreateNestedOneWithoutLedgerEntriesInput
+  warehouse: Prisma.WarehouseCreateNestedOneWithoutLedgerEntriesInput
+  lot?: Prisma.LotCreateNestedOneWithoutLedgerEntriesInput
+}
+
+export type InventoryLedgerUncheckedCreateWithoutCustomerInput = {
+  id?: string
+  type: $Enums.LedgerType
+  quantity: number
+  weight?: number | null
+  sourceTxId?: string | null
+  createdAt?: Date | string
+  createdBy?: string | null
+  customerOrderId?: string | null
+  productId: string
+  warehouseId: string
+  scaleId?: string | null
+  lotId?: string | null
+}
+
+export type InventoryLedgerCreateOrConnectWithoutCustomerInput = {
+  where: Prisma.InventoryLedgerWhereUniqueInput
+  create: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput>
+}
+
+export type InventoryLedgerCreateManyCustomerInputEnvelope = {
+  data: Prisma.InventoryLedgerCreateManyCustomerInput | Prisma.InventoryLedgerCreateManyCustomerInput[]
+  skipDuplicates?: boolean
+}
+
+export type InventoryLedgerUpsertWithWhereUniqueWithoutCustomerInput = {
+  where: Prisma.InventoryLedgerWhereUniqueInput
+  update: Prisma.XOR<Prisma.InventoryLedgerUpdateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedUpdateWithoutCustomerInput>
+  create: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerInput>
+}
+
+export type InventoryLedgerUpdateWithWhereUniqueWithoutCustomerInput = {
+  where: Prisma.InventoryLedgerWhereUniqueInput
+  data: Prisma.XOR<Prisma.InventoryLedgerUpdateWithoutCustomerInput, Prisma.InventoryLedgerUncheckedUpdateWithoutCustomerInput>
+}
+
+export type InventoryLedgerUpdateManyWithWhereWithoutCustomerInput = {
+  where: Prisma.InventoryLedgerScalarWhereInput
+  data: Prisma.XOR<Prisma.InventoryLedgerUpdateManyMutationInput, Prisma.InventoryLedgerUncheckedUpdateManyWithoutCustomerInput>
+}
+
+export type InventoryLedgerCreateWithoutCustomerOrderInput = {
+  id?: string
+  type: $Enums.LedgerType
+  quantity: number
+  weight?: number | null
+  sourceTxId?: string | null
+  createdAt?: Date | string
+  createdBy?: string | null
+  customer?: Prisma.CustomerCreateNestedOneWithoutLedgersInput
+  product: Prisma.ProductCreateNestedOneWithoutLedgerEntriesInput
+  scale?: Prisma.ScaleCreateNestedOneWithoutLedgerEntriesInput
+  warehouse: Prisma.WarehouseCreateNestedOneWithoutLedgerEntriesInput
+  lot?: Prisma.LotCreateNestedOneWithoutLedgerEntriesInput
+}
+
+export type InventoryLedgerUncheckedCreateWithoutCustomerOrderInput = {
+  id?: string
+  type: $Enums.LedgerType
+  quantity: number
+  weight?: number | null
+  sourceTxId?: string | null
+  createdAt?: Date | string
+  createdBy?: string | null
+  customerId?: string | null
+  productId: string
+  warehouseId: string
+  scaleId?: string | null
+  lotId?: string | null
+}
+
+export type InventoryLedgerCreateOrConnectWithoutCustomerOrderInput = {
+  where: Prisma.InventoryLedgerWhereUniqueInput
+  create: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerOrderInput>
+}
+
+export type InventoryLedgerUpsertWithoutCustomerOrderInput = {
+  update: Prisma.XOR<Prisma.InventoryLedgerUpdateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedUpdateWithoutCustomerOrderInput>
+  create: Prisma.XOR<Prisma.InventoryLedgerCreateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedCreateWithoutCustomerOrderInput>
+  where?: Prisma.InventoryLedgerWhereInput
+}
+
+export type InventoryLedgerUpdateToOneWithWhereWithoutCustomerOrderInput = {
+  where?: Prisma.InventoryLedgerWhereInput
+  data: Prisma.XOR<Prisma.InventoryLedgerUpdateWithoutCustomerOrderInput, Prisma.InventoryLedgerUncheckedUpdateWithoutCustomerOrderInput>
+}
+
+export type InventoryLedgerUpdateWithoutCustomerOrderInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumLedgerTypeFieldUpdateOperationsInput | $Enums.LedgerType
+  quantity?: Prisma.FloatFieldUpdateOperationsInput | number
+  weight?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer?: Prisma.CustomerUpdateOneWithoutLedgersNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput
+  scale?: Prisma.ScaleUpdateOneWithoutLedgerEntriesNestedInput
+  warehouse?: Prisma.WarehouseUpdateOneRequiredWithoutLedgerEntriesNestedInput
+  lot?: Prisma.LotUpdateOneWithoutLedgerEntriesNestedInput
+}
+
+export type InventoryLedgerUncheckedUpdateWithoutCustomerOrderInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumLedgerTypeFieldUpdateOperationsInput | $Enums.LedgerType
+  quantity?: Prisma.FloatFieldUpdateOperationsInput | number
+  weight?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
+  scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
 export type InventoryLedgerCreateManyProductInput = {
   id?: string
   type: $Enums.LedgerType
@@ -918,6 +1195,8 @@ export type InventoryLedgerCreateManyProductInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   warehouseId: string
   scaleId?: string | null
   lotId?: string | null
@@ -931,6 +1210,8 @@ export type InventoryLedgerUpdateWithoutProductInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer?: Prisma.CustomerUpdateOneWithoutLedgersNestedInput
+  customerOrder?: Prisma.CustomerOrderUpdateOneWithoutLedgerNestedInput
   scale?: Prisma.ScaleUpdateOneWithoutLedgerEntriesNestedInput
   warehouse?: Prisma.WarehouseUpdateOneRequiredWithoutLedgerEntriesNestedInput
   lot?: Prisma.LotUpdateOneWithoutLedgerEntriesNestedInput
@@ -944,6 +1225,8 @@ export type InventoryLedgerUncheckedUpdateWithoutProductInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -957,6 +1240,8 @@ export type InventoryLedgerUncheckedUpdateManyWithoutProductInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -970,6 +1255,8 @@ export type InventoryLedgerCreateManyLotInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   warehouseId: string
   scaleId?: string | null
@@ -983,6 +1270,8 @@ export type InventoryLedgerUpdateWithoutLotInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer?: Prisma.CustomerUpdateOneWithoutLedgersNestedInput
+  customerOrder?: Prisma.CustomerOrderUpdateOneWithoutLedgerNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput
   scale?: Prisma.ScaleUpdateOneWithoutLedgerEntriesNestedInput
   warehouse?: Prisma.WarehouseUpdateOneRequiredWithoutLedgerEntriesNestedInput
@@ -996,6 +1285,8 @@ export type InventoryLedgerUncheckedUpdateWithoutLotInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1009,6 +1300,8 @@ export type InventoryLedgerUncheckedUpdateManyWithoutLotInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1022,6 +1315,8 @@ export type InventoryLedgerCreateManyWarehouseInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   scaleId?: string | null
   lotId?: string | null
@@ -1035,6 +1330,8 @@ export type InventoryLedgerUpdateWithoutWarehouseInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer?: Prisma.CustomerUpdateOneWithoutLedgersNestedInput
+  customerOrder?: Prisma.CustomerOrderUpdateOneWithoutLedgerNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput
   scale?: Prisma.ScaleUpdateOneWithoutLedgerEntriesNestedInput
   lot?: Prisma.LotUpdateOneWithoutLedgerEntriesNestedInput
@@ -1048,6 +1345,8 @@ export type InventoryLedgerUncheckedUpdateWithoutWarehouseInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1061,6 +1360,8 @@ export type InventoryLedgerUncheckedUpdateManyWithoutWarehouseInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1074,6 +1375,8 @@ export type InventoryLedgerCreateManyScaleInput = {
   sourceTxId?: string | null
   createdAt?: Date | string
   createdBy?: string | null
+  customerId?: string | null
+  customerOrderId?: string | null
   productId: string
   warehouseId: string
   lotId?: string | null
@@ -1087,6 +1390,8 @@ export type InventoryLedgerUpdateWithoutScaleInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customer?: Prisma.CustomerUpdateOneWithoutLedgersNestedInput
+  customerOrder?: Prisma.CustomerOrderUpdateOneWithoutLedgerNestedInput
   product?: Prisma.ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput
   warehouse?: Prisma.WarehouseUpdateOneRequiredWithoutLedgerEntriesNestedInput
   lot?: Prisma.LotUpdateOneWithoutLedgerEntriesNestedInput
@@ -1100,6 +1405,8 @@ export type InventoryLedgerUncheckedUpdateWithoutScaleInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
   lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1113,8 +1420,70 @@ export type InventoryLedgerUncheckedUpdateManyWithoutScaleInput = {
   sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   productId?: Prisma.StringFieldUpdateOperationsInput | string
   warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
+  lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type InventoryLedgerCreateManyCustomerInput = {
+  id?: string
+  type: $Enums.LedgerType
+  quantity: number
+  weight?: number | null
+  sourceTxId?: string | null
+  createdAt?: Date | string
+  createdBy?: string | null
+  customerOrderId?: string | null
+  productId: string
+  warehouseId: string
+  scaleId?: string | null
+  lotId?: string | null
+}
+
+export type InventoryLedgerUpdateWithoutCustomerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumLedgerTypeFieldUpdateOperationsInput | $Enums.LedgerType
+  quantity?: Prisma.FloatFieldUpdateOperationsInput | number
+  weight?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrder?: Prisma.CustomerOrderUpdateOneWithoutLedgerNestedInput
+  product?: Prisma.ProductUpdateOneRequiredWithoutLedgerEntriesNestedInput
+  scale?: Prisma.ScaleUpdateOneWithoutLedgerEntriesNestedInput
+  warehouse?: Prisma.WarehouseUpdateOneRequiredWithoutLedgerEntriesNestedInput
+  lot?: Prisma.LotUpdateOneWithoutLedgerEntriesNestedInput
+}
+
+export type InventoryLedgerUncheckedUpdateWithoutCustomerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumLedgerTypeFieldUpdateOperationsInput | $Enums.LedgerType
+  quantity?: Prisma.FloatFieldUpdateOperationsInput | number
+  weight?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
+  scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type InventoryLedgerUncheckedUpdateManyWithoutCustomerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumLedgerTypeFieldUpdateOperationsInput | $Enums.LedgerType
+  quantity?: Prisma.FloatFieldUpdateOperationsInput | number
+  weight?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sourceTxId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customerOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  productId?: Prisma.StringFieldUpdateOperationsInput | string
+  warehouseId?: Prisma.StringFieldUpdateOperationsInput | string
+  scaleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lotId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -1128,10 +1497,14 @@ export type InventoryLedgerSelect<ExtArgs extends runtime.Types.Extensions.Inter
   sourceTxId?: boolean
   createdAt?: boolean
   createdBy?: boolean
+  customerId?: boolean
+  customerOrderId?: boolean
   productId?: boolean
   warehouseId?: boolean
   scaleId?: boolean
   lotId?: boolean
+  customer?: boolean | Prisma.InventoryLedger$customerArgs<ExtArgs>
+  customerOrder?: boolean | Prisma.InventoryLedger$customerOrderArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   scale?: boolean | Prisma.InventoryLedger$scaleArgs<ExtArgs>
   warehouse?: boolean | Prisma.WarehouseDefaultArgs<ExtArgs>
@@ -1146,10 +1519,14 @@ export type InventoryLedgerSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   sourceTxId?: boolean
   createdAt?: boolean
   createdBy?: boolean
+  customerId?: boolean
+  customerOrderId?: boolean
   productId?: boolean
   warehouseId?: boolean
   scaleId?: boolean
   lotId?: boolean
+  customer?: boolean | Prisma.InventoryLedger$customerArgs<ExtArgs>
+  customerOrder?: boolean | Prisma.InventoryLedger$customerOrderArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   scale?: boolean | Prisma.InventoryLedger$scaleArgs<ExtArgs>
   warehouse?: boolean | Prisma.WarehouseDefaultArgs<ExtArgs>
@@ -1164,10 +1541,14 @@ export type InventoryLedgerSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   sourceTxId?: boolean
   createdAt?: boolean
   createdBy?: boolean
+  customerId?: boolean
+  customerOrderId?: boolean
   productId?: boolean
   warehouseId?: boolean
   scaleId?: boolean
   lotId?: boolean
+  customer?: boolean | Prisma.InventoryLedger$customerArgs<ExtArgs>
+  customerOrder?: boolean | Prisma.InventoryLedger$customerOrderArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   scale?: boolean | Prisma.InventoryLedger$scaleArgs<ExtArgs>
   warehouse?: boolean | Prisma.WarehouseDefaultArgs<ExtArgs>
@@ -1182,26 +1563,34 @@ export type InventoryLedgerSelectScalar = {
   sourceTxId?: boolean
   createdAt?: boolean
   createdBy?: boolean
+  customerId?: boolean
+  customerOrderId?: boolean
   productId?: boolean
   warehouseId?: boolean
   scaleId?: boolean
   lotId?: boolean
 }
 
-export type InventoryLedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "quantity" | "weight" | "sourceTxId" | "createdAt" | "createdBy" | "productId" | "warehouseId" | "scaleId" | "lotId", ExtArgs["result"]["inventoryLedger"]>
+export type InventoryLedgerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "quantity" | "weight" | "sourceTxId" | "createdAt" | "createdBy" | "customerId" | "customerOrderId" | "productId" | "warehouseId" | "scaleId" | "lotId", ExtArgs["result"]["inventoryLedger"]>
 export type InventoryLedgerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  customer?: boolean | Prisma.InventoryLedger$customerArgs<ExtArgs>
+  customerOrder?: boolean | Prisma.InventoryLedger$customerOrderArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   scale?: boolean | Prisma.InventoryLedger$scaleArgs<ExtArgs>
   warehouse?: boolean | Prisma.WarehouseDefaultArgs<ExtArgs>
   lot?: boolean | Prisma.InventoryLedger$lotArgs<ExtArgs>
 }
 export type InventoryLedgerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  customer?: boolean | Prisma.InventoryLedger$customerArgs<ExtArgs>
+  customerOrder?: boolean | Prisma.InventoryLedger$customerOrderArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   scale?: boolean | Prisma.InventoryLedger$scaleArgs<ExtArgs>
   warehouse?: boolean | Prisma.WarehouseDefaultArgs<ExtArgs>
   lot?: boolean | Prisma.InventoryLedger$lotArgs<ExtArgs>
 }
 export type InventoryLedgerIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  customer?: boolean | Prisma.InventoryLedger$customerArgs<ExtArgs>
+  customerOrder?: boolean | Prisma.InventoryLedger$customerOrderArgs<ExtArgs>
   product?: boolean | Prisma.ProductDefaultArgs<ExtArgs>
   scale?: boolean | Prisma.InventoryLedger$scaleArgs<ExtArgs>
   warehouse?: boolean | Prisma.WarehouseDefaultArgs<ExtArgs>
@@ -1211,6 +1600,8 @@ export type InventoryLedgerIncludeUpdateManyAndReturn<ExtArgs extends runtime.Ty
 export type $InventoryLedgerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "InventoryLedger"
   objects: {
+    customer: Prisma.$CustomerPayload<ExtArgs> | null
+    customerOrder: Prisma.$CustomerOrderPayload<ExtArgs> | null
     product: Prisma.$ProductPayload<ExtArgs>
     scale: Prisma.$ScalePayload<ExtArgs> | null
     warehouse: Prisma.$WarehousePayload<ExtArgs>
@@ -1224,6 +1615,8 @@ export type $InventoryLedgerPayload<ExtArgs extends runtime.Types.Extensions.Int
     sourceTxId: string | null
     createdAt: Date
     createdBy: string | null
+    customerId: string | null
+    customerOrderId: string | null
     productId: string
     warehouseId: string
     scaleId: string | null
@@ -1622,6 +2015,8 @@ readonly fields: InventoryLedgerFieldRefs;
  */
 export interface Prisma__InventoryLedgerClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  customer<T extends Prisma.InventoryLedger$customerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InventoryLedger$customerArgs<ExtArgs>>): Prisma.Prisma__CustomerClient<runtime.Types.Result.GetResult<Prisma.$CustomerPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  customerOrder<T extends Prisma.InventoryLedger$customerOrderArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InventoryLedger$customerOrderArgs<ExtArgs>>): Prisma.Prisma__CustomerOrderClient<runtime.Types.Result.GetResult<Prisma.$CustomerOrderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   product<T extends Prisma.ProductDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProductDefaultArgs<ExtArgs>>): Prisma.Prisma__ProductClient<runtime.Types.Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   scale<T extends Prisma.InventoryLedger$scaleArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.InventoryLedger$scaleArgs<ExtArgs>>): Prisma.Prisma__ScaleClient<runtime.Types.Result.GetResult<Prisma.$ScalePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   warehouse<T extends Prisma.WarehouseDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WarehouseDefaultArgs<ExtArgs>>): Prisma.Prisma__WarehouseClient<runtime.Types.Result.GetResult<Prisma.$WarehousePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
@@ -1662,6 +2057,8 @@ export interface InventoryLedgerFieldRefs {
   readonly sourceTxId: Prisma.FieldRef<"InventoryLedger", 'String'>
   readonly createdAt: Prisma.FieldRef<"InventoryLedger", 'DateTime'>
   readonly createdBy: Prisma.FieldRef<"InventoryLedger", 'String'>
+  readonly customerId: Prisma.FieldRef<"InventoryLedger", 'String'>
+  readonly customerOrderId: Prisma.FieldRef<"InventoryLedger", 'String'>
   readonly productId: Prisma.FieldRef<"InventoryLedger", 'String'>
   readonly warehouseId: Prisma.FieldRef<"InventoryLedger", 'String'>
   readonly scaleId: Prisma.FieldRef<"InventoryLedger", 'String'>
@@ -2059,6 +2456,44 @@ export type InventoryLedgerDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
    * Limit how many InventoryLedgers to delete.
    */
   limit?: number
+}
+
+/**
+ * InventoryLedger.customer
+ */
+export type InventoryLedger$customerArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Customer
+   */
+  select?: Prisma.CustomerSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Customer
+   */
+  omit?: Prisma.CustomerOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CustomerInclude<ExtArgs> | null
+  where?: Prisma.CustomerWhereInput
+}
+
+/**
+ * InventoryLedger.customerOrder
+ */
+export type InventoryLedger$customerOrderArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CustomerOrder
+   */
+  select?: Prisma.CustomerOrderSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CustomerOrder
+   */
+  omit?: Prisma.CustomerOrderOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CustomerOrderInclude<ExtArgs> | null
+  where?: Prisma.CustomerOrderWhereInput
 }
 
 /**

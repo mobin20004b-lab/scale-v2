@@ -48,6 +48,21 @@ export type Scale = Prisma.ScaleModel
  */
 export type InventoryLedger = Prisma.InventoryLedgerModel
 /**
+ * Model Customer
+ * 
+ */
+export type Customer = Prisma.CustomerModel
+/**
+ * Model CustomerOrder
+ * 
+ */
+export type CustomerOrder = Prisma.CustomerOrderModel
+/**
+ * Model CustomerOrderItem
+ * 
+ */
+export type CustomerOrderItem = Prisma.CustomerOrderItemModel
+/**
  * Model UnknownBarcode
  * 
  */

@@ -57,7 +57,7 @@ export default function ProductsManagement() {
   const [spoolsPerBag, setSpoolsPerBag] = useState('12');
   const [spoolWeight, setSpoolWeight] = useState('0');
   const [bagWeight, setBagWeight] = useState('0');
-  const [brandName, setBrandName] = useState('نساجی زمرد');
+  const [brandName, setBrandName] = useState('نساجی زنبق');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
@@ -69,7 +69,7 @@ export default function ProductsManagement() {
   const [isLotSaving, setIsLotSaving] = useState(false);
 
   const [receiptLot, setReceiptLot] = useState<(Lot & { productName: string; productUnit: string }) | null>(null);
-  const [companyName, setCompanyName] = useState('نساجی زمرد');
+  const [companyName, setCompanyName] = useState('نساجی زنبق');
 
   const fetchProducts = async () => {
     try {
@@ -90,7 +90,7 @@ export default function ProductsManagement() {
         const res = await fetch('/api/settings');
         if (res.ok) {
           const data = await res.json();
-          setCompanyName(String(data?.settings?.companyName ?? 'نساجی زمرد'));
+          setCompanyName(String(data?.settings?.companyName ?? 'نساجی زنبق'));
         }
       } catch {}
     })();
@@ -129,11 +129,11 @@ export default function ProductsManagement() {
     setSpoolsPerBag('12');
     setSpoolWeight('0');
     setBagWeight('0');
-    setBrandName('نساجی زمرد');
+    setBrandName('نساجی زنبق');
         setSpoolsPerBag('12');
         setSpoolWeight('0');
         setBagWeight('0');
-        setBrandName('نساجی زمرد');
+        setBrandName('نساجی زنبق');
         setIsAdding(false);
         setEditingProduct(null);
         fetchProducts();
@@ -171,7 +171,7 @@ export default function ProductsManagement() {
     setSpoolsPerBag(String(product.spoolsPerBag ?? 12));
     setSpoolWeight(String(product.spoolWeight ?? 0));
     setBagWeight(String(product.bagWeight ?? 0));
-    setBrandName(product.brandName || 'نساجی زمرد');
+    setBrandName(product.brandName || 'نساجی زنبق');
     setIsAdding(true);
   };
 
@@ -186,7 +186,7 @@ export default function ProductsManagement() {
     setSpoolsPerBag('12');
     setSpoolWeight('0');
     setBagWeight('0');
-    setBrandName('نساجی زمرد');
+    setBrandName('نساجی زنبق');
   };
 
   const startEditLot = (lot: Lot, product: Product) => {

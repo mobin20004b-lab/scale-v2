@@ -481,14 +481,6 @@ export type LotUncheckedUpdateManyWithoutProductNestedInput = {
   deleteMany?: Prisma.LotScalarWhereInput | Prisma.LotScalarWhereInput[]
 }
 
-export type FloatFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type LotCreateNestedOneWithoutLedgerEntriesInput = {
   create?: Prisma.XOR<Prisma.LotCreateWithoutLedgerEntriesInput, Prisma.LotUncheckedCreateWithoutLedgerEntriesInput>
   connectOrCreate?: Prisma.LotCreateOrConnectWithoutLedgerEntriesInput

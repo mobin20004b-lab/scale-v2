@@ -57,6 +57,9 @@ export const ModelName = {
   Warehouse: 'Warehouse',
   Scale: 'Scale',
   InventoryLedger: 'InventoryLedger',
+  Customer: 'Customer',
+  CustomerOrder: 'CustomerOrder',
+  CustomerOrderItem: 'CustomerOrderItem',
   UnknownBarcode: 'UnknownBarcode',
   ScaleCommand: 'ScaleCommand',
   PrintJob: 'PrintJob',
@@ -109,6 +112,10 @@ export const ProductScalarFieldEnum = {
   qrCode: 'qrCode',
   category: 'category',
   unit: 'unit',
+  spoolsPerBag: 'spoolsPerBag',
+  spoolWeight: 'spoolWeight',
+  bagWeight: 'bagWeight',
+  brandName: 'brandName',
   isDeleted: 'isDeleted',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
@@ -178,6 +185,8 @@ export const InventoryLedgerScalarFieldEnum = {
   sourceTxId: 'sourceTxId',
   createdAt: 'createdAt',
   createdBy: 'createdBy',
+  customerId: 'customerId',
+  customerOrderId: 'customerOrderId',
   productId: 'productId',
   warehouseId: 'warehouseId',
   scaleId: 'scaleId',
@@ -185,6 +194,50 @@ export const InventoryLedgerScalarFieldEnum = {
 } as const
 
 export type InventoryLedgerScalarFieldEnum = (typeof InventoryLedgerScalarFieldEnum)[keyof typeof InventoryLedgerScalarFieldEnum]
+
+
+export const CustomerScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  phone: 'phone',
+  email: 'email',
+  address: 'address',
+  isDeleted: 'isDeleted',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerScalarFieldEnum = (typeof CustomerScalarFieldEnum)[keyof typeof CustomerScalarFieldEnum]
+
+
+export const CustomerOrderScalarFieldEnum = {
+  id: 'id',
+  customerId: 'customerId',
+  orderDate: 'orderDate',
+  status: 'status',
+  paymentStatus: 'paymentStatus',
+  totalPrice: 'totalPrice',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CustomerOrderScalarFieldEnum = (typeof CustomerOrderScalarFieldEnum)[keyof typeof CustomerOrderScalarFieldEnum]
+
+
+export const CustomerOrderItemScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  productId: 'productId',
+  productName: 'productName',
+  quantity: 'quantity',
+  unitPrice: 'unitPrice',
+  totalPrice: 'totalPrice',
+  createdAt: 'createdAt'
+} as const
+
+export type CustomerOrderItemScalarFieldEnum = (typeof CustomerOrderItemScalarFieldEnum)[keyof typeof CustomerOrderItemScalarFieldEnum]
 
 
 export const UnknownBarcodeScalarFieldEnum = {

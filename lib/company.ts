@@ -1,2 +1,2 @@
-export const DEFAULT_COMPANY_NAME = 'نساجی زمرد';
+export const DEFAULT_COMPANY_NAME = 'نساجی زنبق';
 

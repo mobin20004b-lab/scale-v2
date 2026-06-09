@@ -13,7 +13,7 @@ async function ensureSettingsFile() {
       await fs.access(SETTINGS_FILE_PATH);
     } catch {
       await fs.writeFile(SETTINGS_FILE_PATH, JSON.stringify({
-        companyName: 'نساجی زمرد',
+        companyName: 'نساجی زنبق',
         allowUserRegistration: false,
         defaultRateLimit: 100,
         externalApiEnabled: true,
