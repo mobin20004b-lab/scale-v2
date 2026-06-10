@@ -19,8 +19,8 @@ RUN apk add --no-cache libc6-compat
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Reinstall in Alpine to resolve missing platform-specific optional deps (lockfile generated on darwin)
-RUN npm install --no-save --no-audit --progress=false
+# Install platform-specific optional deps missing from macos-generated lockfile
+RUN npm install lightningcss-linux-x64-musl @next/swc-linux-x64-musl @tailwindcss/oxide-linux-x64-musl --no-save --loglevel=error
 COPY prisma/bins/schema-engine-linux-musl-openssl-3.0.x /app/node_modules/@prisma/engines/schema-engine-linux-musl-openssl-3.0.x
 ENV PRISMA_SCHEMA_ENGINE_BINARY=/app/node_modules/@prisma/engines/schema-engine-linux-musl-openssl-3.0.x
 RUN npx prisma generate
