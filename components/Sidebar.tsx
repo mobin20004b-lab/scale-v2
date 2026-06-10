@@ -7,6 +7,7 @@ import { ChevronLeft, Menu, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import CommandPalette from '@/components/CommandPalette';
 import UserPanel from '@/components/UserPanel';
+import PrintLabelDialog from '@/components/PrintLabelDialog';
 import { navItems, quickActionsByPath } from '@/lib/navigation';
 import { DEFAULT_COMPANY_NAME } from '@/lib/company';
 
@@ -53,6 +54,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      <PrintLabelDialog />
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {isOpen && (

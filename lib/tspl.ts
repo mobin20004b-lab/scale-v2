@@ -50,7 +50,7 @@ export function buildTSPL(content: LabelContent): string {
   y = 705;
   lines.push(`BAR 20,${y},460,2,0`);
   y += 30;
-  lines.push(`TEXT 55,${y},"2",0,2,2,"${escapeTSPL(`تاریخ و ساعت: ${formattedDate}`)}"`);
+  lines.push(`TEXT 145,${y},"2",0,2,2,"${escapeTSPL(formattedDate)}"`);
 
   lines.push('PRINT 1,1');
 
