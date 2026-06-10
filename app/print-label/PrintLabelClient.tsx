@@ -92,17 +92,17 @@ export default function PrintLabelClient() {
           <div className="flex min-h-0 flex-[2.2] items-center justify-center px-2">
             <div className="flex min-w-0 w-full items-center gap-2" dir="rtl">
               <QRCodeSVG value={data.qrCode} size={68} level="M" className="shrink-0" />
-              <div className="min-w-0 flex-1 space-y-0.5 text-center text-[11px] leading-snug">
-                <p className="break-words">
-                  <span className="font-bold ml-1">نام کالا:</span>
+              <div className="min-w-0 flex-1 space-y-0.5 text-center text-[13px] leading-tight">
+                <p className="break-words text-sm font-bold">
+                  <span className="ml-1">نام کالا:</span>
                   <span>{data.productName}</span>
                 </p>
-                <p className="truncate">
-                  <span className="font-bold ml-1">وزن ناخالص:</span>
+                <p className="truncate font-bold">
+                  <span className="ml-1">وزن ناخالص:</span>
                   <span>{data.grossWeight} {data.unit}</span>
                 </p>
-                <p className="truncate">
-                  <span className="font-bold ml-1">وزن خالص:</span>
+                <p className="truncate font-bold">
+                  <span className="ml-1">وزن خالص:</span>
                   <span>{data.netWeight} {data.unit}</span>
                 </p>
               </div>
