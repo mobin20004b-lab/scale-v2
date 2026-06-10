@@ -105,4 +105,11 @@
     height: 100mm !important;
     overflow: hidden !important;
   }
+
+  body.print-label-page #print-label-root img {
+    display: block !important;
+    width: 100mm !important;
+    height: 100mm !important;
+    object-fit: contain !important;
+  }
 }
