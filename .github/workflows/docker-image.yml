@@ -52,7 +52,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             DATABASE_URL=${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder' }}
-            EXTERNAL_API_KEY=${{ secrets.EXTERNAL_API_KEY || secrets.EXTERNAL_API_KEY_PRIMARY || '' }}
+            EXTERNAL_API_KEY=${{ secrets.EXTERNAL_API_KEY || secrets.EXTERNAL_API_KEY_PRIMARY || 'build_placeholder_key_24chars' }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
           provenance: false
