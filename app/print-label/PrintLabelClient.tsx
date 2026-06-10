@@ -17,7 +17,8 @@ type LabelData = {
 };
 
 const CANVAS_SIZE = 800;
-const PRINT_SIZE_MM = 100;
+const LABEL_SIZE = '10cm';
+const PNG_PIXELS_PER_METER = CANVAS_SIZE / 0.1;
 
 export default function PrintLabelClient() {
   const [data, setData] = useState<LabelData | null>(null);
@@ -60,7 +61,11 @@ export default function PrintLabelClient() {
     }
 
     await Promise.race([
-      document.fonts?.ready ?? Promise.resolve(),
+      Promise.all([
+        document.fonts?.ready ?? Promise.resolve(),
+        document.fonts?.load('900 42px Vazirmatn') ?? Promise.resolve(),
+        document.fonts?.load('900 34px Vazirmatn') ?? Promise.resolve(),
+      ]),
       new Promise((resolve) => setTimeout(resolve, 180)),
     ]);
 
@@ -71,7 +76,7 @@ export default function PrintLabelClient() {
       ]);
 
       drawLabelCanvas(ctx, data, barcodeImage, qrImage);
-      setPngUrl(canvas.toDataURL('image/png'));
+      setPngUrl(addPngPhysicalSize(canvas.toDataURL('image/png')));
     } finally {
       setIsPreparing(false);
     }
@@ -135,6 +140,7 @@ export default function PrintLabelClient() {
       id="print-label-root"
       className="flex min-h-screen items-center justify-center bg-[#ece7dc] p-6 print:block print:bg-white print:p-0"
       dir="rtl"
+      style={{ fontFamily: 'var(--font-vazirmatn), Vazirmatn' }}
     >
       <div className="print:hidden absolute left-[-9999px] top-0" ref={assetsRef} aria-hidden="true">
         <div data-label-barcode>
@@ -144,6 +150,7 @@ export default function PrintLabelClient() {
             height={96}
             fontSize={22}
             displayValue
+            font="Vazirmatn"
             margin={0}
           />
         </div>
@@ -170,14 +177,18 @@ export default function PrintLabelClient() {
           </button>
         </div>
 
-        <div className="mx-auto flex aspect-square w-full max-w-[100mm] items-center justify-center overflow-hidden rounded-xl bg-white print:h-[100mm] print:w-[100mm] print:max-w-none print:rounded-none">
+        <div
+          className="mx-auto flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white print:rounded-none"
+          style={{ width: LABEL_SIZE, height: LABEL_SIZE, maxWidth: '100%' }}
+        >
           {pngUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               ref={printImageRef}
               src={pngUrl}
               alt="لیبل آماده چاپ"
-              className="block h-full w-full object-contain print:h-[100mm] print:w-[100mm]"
+              className="block object-contain"
+              style={{ width: LABEL_SIZE, height: LABEL_SIZE }}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-base font-black text-stone-500">
@@ -227,24 +238,32 @@ function drawLabelCanvas(
     `نام کالا: ${data.productName}`,
     `وزن ناخالص: ${formatNumber(data.grossWeight)} ${data.unit}`,
     `وزن خالص: ${formatNumber(data.netWeight)} ${data.unit}`,
-    `تاریخ تولید: ${formattedDate}`,
   ];
 
-  ctx.font = canvasFont(37, 900);
+  ctx.font = canvasFont(42, 900);
   infoRows.forEach((row, index) => {
-    drawText(ctx, row, CANVAS_SIZE / 2, 190 + index * 68, 37, 685, 620);
+    drawText(ctx, row, CANVAS_SIZE / 2, 200 + index * 78, 42, 690, 900);
   });
 
   ctx.strokeStyle = '#c7c7c7';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(70, 475);
-  ctx.lineTo(730, 475);
+  ctx.moveTo(70, 445);
+  ctx.lineTo(730, 445);
   ctx.stroke();
 
   // Barcode sits on the left of the QR code, as requested.
-  drawImageContained(ctx, barcodeImage, 64, 525, 410, 180);
-  drawImageContained(ctx, qrImage, 520, 505, 210, 210);
+  drawImageContained(ctx, barcodeImage, 58, 492, 425, 170);
+  drawImageContained(ctx, qrImage, 520, 470, 210, 210);
+
+  ctx.strokeStyle = '#c7c7c7';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(70, 704);
+  ctx.lineTo(730, 704);
+  ctx.stroke();
+
+  drawText(ctx, `تاریخ و ساعت: ${formattedDate}`, CANVAS_SIZE / 2, 748, 34, 690, 900);
 }
 
 function drawText(
@@ -268,7 +287,7 @@ function drawText(
 }
 
 function canvasFont(size: number, weight: number) {
-  return `${weight} ${size}px Vazirmatn, Tahoma, sans-serif`;
+  return `${weight} ${size}px Vazirmatn`;
 }
 
 function drawImageContained(
@@ -335,4 +354,66 @@ function svgElementToImage(element: SVGSVGElement | null): Promise<HTMLImageElem
 
 function formatNumber(value: number) {
   return Number.isFinite(value) ? value.toLocaleString('fa-IR') : '-';
+}
+
+
+function addPngPhysicalSize(dataUrl: string) {
+  const prefix = 'data:image/png;base64,';
+  if (!dataUrl.startsWith(prefix)) return dataUrl;
+
+  const bytes = Uint8Array.from(atob(dataUrl.slice(prefix.length)), (char) => char.charCodeAt(0));
+  const pngSignatureLength = 8;
+  const ihdrChunkLength = 25;
+  const insertAt = pngSignatureLength + ihdrChunkLength;
+
+  if (bytes.length < insertAt) return dataUrl;
+
+  const chunkType = new TextEncoder().encode('pHYs');
+  const chunkData = new Uint8Array(9);
+  writeUInt32(chunkData, 0, PNG_PIXELS_PER_METER);
+  writeUInt32(chunkData, 4, PNG_PIXELS_PER_METER);
+  chunkData[8] = 1;
+
+  const crcInput = new Uint8Array(chunkType.length + chunkData.length);
+  crcInput.set(chunkType, 0);
+  crcInput.set(chunkData, chunkType.length);
+
+  const chunk = new Uint8Array(4 + chunkType.length + chunkData.length + 4);
+  writeUInt32(chunk, 0, chunkData.length);
+  chunk.set(chunkType, 4);
+  chunk.set(chunkData, 8);
+  writeUInt32(chunk, 17, crc32(crcInput));
+
+  const output = new Uint8Array(bytes.length + chunk.length);
+  output.set(bytes.slice(0, insertAt), 0);
+  output.set(chunk, insertAt);
+  output.set(bytes.slice(insertAt), insertAt + chunk.length);
+
+  let binary = '';
+  const batchSize = 0x8000;
+  for (let index = 0; index < output.length; index += batchSize) {
+    binary += String.fromCharCode(...output.slice(index, index + batchSize));
+  }
+
+  return `${prefix}${btoa(binary)}`;
+}
+
+function writeUInt32(bytes: Uint8Array, offset: number, value: number) {
+  bytes[offset] = (value >>> 24) & 0xff;
+  bytes[offset + 1] = (value >>> 16) & 0xff;
+  bytes[offset + 2] = (value >>> 8) & 0xff;
+  bytes[offset + 3] = value & 0xff;
+}
+
+function crc32(bytes: Uint8Array) {
+  let crc = 0xffffffff;
+
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = crc & 1 ? (crc >>> 1) ^ 0xedb88320 : crc >>> 1;
+    }
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
 }

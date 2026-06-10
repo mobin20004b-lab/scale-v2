@@ -76,9 +76,13 @@
   }
 }
 
+body.print-label-page {
+  font-family: var(--font-vazirmatn), Vazirmatn !important;
+}
+
 @media print {
   @page {
-    size: 100mm 100mm;
+    size: 10cm 10cm;
     margin: 0;
   }
 
@@ -101,15 +105,15 @@
   body.print-label-page #print-label-root {
     position: absolute;
     inset: 0;
-    width: 100mm !important;
-    height: 100mm !important;
+    width: 10cm !important;
+    height: 10cm !important;
     overflow: hidden !important;
   }
 
   body.print-label-page #print-label-root img {
     display: block !important;
-    width: 100mm !important;
-    height: 100mm !important;
+    width: 10cm !important;
+    height: 10cm !important;
     object-fit: contain !important;
   }
 }

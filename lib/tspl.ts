@@ -40,15 +40,17 @@ export function buildTSPL(content: LabelContent): string {
   const formattedDate = content.createdAt
     ? new Date(content.createdAt).toLocaleString('fa-IR')
     : '-';
-  lines.push(`TEXT 100,${y},"2",0,2,2,"${escapeTSPL(`تاریخ تولید: ${formattedDate}`)}"`);
-  y += 65;
-
   lines.push(`BAR 20,${y},460,2,0`);
   y += 30;
 
   // Barcode is placed to the left of the QR code. Batch/lot text is intentionally omitted.
   lines.push(`BARCODE 20,${y},"128",48,1,0,2,2,"${escapeTSPL(content.barcode)}"`);
   lines.push(`QRCODE 330,${y - 10},H,5,A,0,"${escapeTSPL(content.qrCode)}"`);
+
+  y = 705;
+  lines.push(`BAR 20,${y},460,2,0`);
+  y += 30;
+  lines.push(`TEXT 55,${y},"2",0,2,2,"${escapeTSPL(`تاریخ و ساعت: ${formattedDate}`)}"`);
 
   lines.push('PRINT 1,1');
 
