@@ -1,7 +1,8 @@
-FROM oven/bun:latest AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN bun install --frozen-lockfile --no-cache
+
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci --no-audit --progress=false --loglevel=error
 
 FROM node:22-alpine AS builder
 WORKDIR /app
