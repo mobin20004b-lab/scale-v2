@@ -7,7 +7,6 @@ RUN npm install --no-audit --progress=false
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 ENV DATABASE_URL=$DATABASE_URL
