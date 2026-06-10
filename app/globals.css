@@ -78,7 +78,7 @@
 
 @media print {
   @page {
-    size: 100mm 150mm;
+    size: 100mm 100mm;
     margin: 0;
   }
 
@@ -101,5 +101,8 @@
   body.print-label-page #print-label-root {
     position: absolute;
     inset: 0;
+    width: 100mm !important;
+    height: 100mm !important;
+    overflow: hidden !important;
   }
 }

@@ -13,7 +13,7 @@ export type LabelContent = {
 export function buildTSPL(content: LabelContent): string {
   const lines: string[] = [];
 
-  lines.push('SIZE 100 mm, 150 mm');
+  lines.push('SIZE 100 mm, 100 mm');
   lines.push('GAP 3 mm, 0 mm');
   lines.push('DIRECTION 1');
   lines.push('CLS');
