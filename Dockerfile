@@ -2,7 +2,7 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json .npmrc ./
-RUN npm install --no-audit --progress=false --loglevel=error
+RUN npm install --no-audit --progress=false
 
 FROM node:22-alpine AS builder
 WORKDIR /app
@@ -19,8 +19,8 @@ RUN apk add --no-cache libc6-compat
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# install platform-specific optional deps missing from lockfile (regenerated on darwin)
-RUN npm install lightningcss-linux-x64-musl @next/swc-linux-x64-musl --no-save --loglevel=error
+# Reinstall in Alpine to resolve missing platform-specific optional deps (lockfile generated on darwin)
+RUN npm install --no-save --no-audit --progress=false
 COPY prisma/bins/schema-engine-linux-musl-openssl-3.0.x /app/node_modules/@prisma/engines/schema-engine-linux-musl-openssl-3.0.x
 ENV PRISMA_SCHEMA_ENGINE_BINARY=/app/node_modules/@prisma/engines/schema-engine-linux-musl-openssl-3.0.x
 RUN npx prisma generate
