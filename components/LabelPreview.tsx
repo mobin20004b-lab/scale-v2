@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Barcode from 'react-barcode';
 import { QRCodeSVG } from 'qrcode.react';
 
-export type LabelDialogData = {
+export type LabelPreviewData = {
   companyName?: string;
   productName: string;
   grossWeight: number;
@@ -17,45 +17,15 @@ export type LabelDialogData = {
 };
 
 const CANVAS_SIZE = 800;
-const LABEL_SIZE = '10cm';
 const PNG_PIXELS_PER_METER = CANVAS_SIZE / 0.1;
-const PRINT_EVENT = 'label-print-request';
 
-export default function PrintLabelDialog() {
-  const [data, setData] = useState<LabelDialogData | null>(null);
-  const [pngUrl, setPngUrl] = useState<string>('');
-  const [isPreparing, setIsPreparing] = useState(false);
-  const [pendingPrint, setPendingPrint] = useState(false);
+export default function LabelPreview({ data }: { data: LabelPreviewData }) {
+  const [pngUrl, setPngUrl] = useState('');
+  const [isPreparing, setIsPreparing] = useState(true);
   const assetsRef = useRef<HTMLDivElement>(null);
-  const printImageRef = useRef<HTMLImageElement>(null);
-
-  useEffect(() => {
-    const openDialog = (event: Event) => {
-      const detail = (event as CustomEvent<LabelDialogData>).detail;
-      if (!detail) return;
-
-      setPngUrl('');
-      setPendingPrint(false);
-      setData(detail);
-      document.body.classList.add('print-label-page');
-    };
-
-    window.addEventListener(PRINT_EVENT, openDialog);
-    return () => {
-      window.removeEventListener(PRINT_EVENT, openDialog);
-      document.body.classList.remove('print-label-page');
-    };
-  }, []);
-
-  const closeDialog = () => {
-    setData(null);
-    setPngUrl('');
-    setPendingPrint(false);
-    document.body.classList.remove('print-label-page');
-  };
 
   const buildPng = useCallback(async () => {
-    if (!data || !assetsRef.current) return;
+    if (!assetsRef.current) return;
 
     setIsPreparing(true);
     const canvas = document.createElement('canvas');
@@ -91,169 +61,40 @@ export default function PrintLabelDialog() {
   }, [data]);
 
   useEffect(() => {
-    if (!data) return;
-
     const frame = requestAnimationFrame(() => {
       void buildPng();
     });
-
     return () => cancelAnimationFrame(frame);
-  }, [buildPng, data]);
-
-  const printToIframe = useCallback((src: string) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '-9999px';
-    iframe.style.bottom = '-9999px';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const win = iframe.contentWindow;
-    if (!win) {
-      document.body.removeChild(iframe);
-      return;
-    }
-
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            @page { size: 10cm 10cm; margin: 0; }
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              width: 10cm; height: 10cm;
-              display: flex; align-items: center; justify-content: center;
-              -webkit-print-color-adjust: exact; print-color-adjust: exact;
-            }
-            img { display: block; width: 10cm; height: 10cm; object-fit: contain; }
-          </style>
-        </head>
-        <body><img src="${src}" alt="" /></body>
-      </html>
-    `);
-    win.document.close();
-
-    const img = win.document.querySelector('img');
-    if (img) {
-      img.onload = () => {
-        win.focus();
-        win.print();
-      };
-    }
-
-    win.onafterprint = () => {
-      document.body.removeChild(iframe);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!pendingPrint || !pngUrl) return;
-    setPendingPrint(false);
-    printToIframe(pngUrl);
-  }, [pendingPrint, pngUrl, printToIframe]);
-
-  const handlePrint = async () => {
-    if (!pngUrl) {
-      setPendingPrint(true);
-      await buildPng();
-      return;
-    }
-
-    printToIframe(pngUrl);
-  };
-
-  if (!data) return null;
+  }, [buildPng]);
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-950/55 p-4 backdrop-blur-sm print:static print:block print:bg-transparent print:p-0"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="print-label-dialog-title"
-      dir="rtl"
-      style={{ fontFamily: 'var(--font-vazirmatn), Vazirmatn' }}
-    >
-      <div className="print:hidden absolute left-[-9999px] top-0" ref={assetsRef} aria-hidden="true">
+    <div className="flex flex-col items-center" style={{ fontFamily: 'var(--font-vazirmatn), Vazirmatn' }}>
+      <div className="absolute left-[-9999px] top-0" ref={assetsRef} aria-hidden="true">
         <div data-label-barcode>
-          <Barcode
-            value={data.barcode}
-            width={2.2}
-            height={96}
-            fontSize={22}
-            displayValue
-            font="Vazirmatn"
-            margin={0}
-          />
+          <Barcode value={data.barcode} width={2.2} height={96} fontSize={22} displayValue font="Vazirmatn" margin={0} />
         </div>
         <div data-label-qr>
           <QRCodeSVG value={data.qrCode} size={220} level="M" marginSize={0} />
         </div>
       </div>
 
-      <section className="w-full max-w-[560px] rounded-[2rem] border border-stone-300 bg-[#fbfaf6] p-5 text-right shadow-2xl shadow-stone-950/25 print:contents">
-        <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
-          <div className="text-right">
-            <p className="text-xs font-bold uppercase tracking-[0.35em] text-stone-500">PNG Label</p>
-            <h2 id="print-label-dialog-title" className="mt-1 text-2xl font-black text-stone-950">
-              پیش‌نمایش چاپ لیبل
-            </h2>
-            <p className="mt-1 text-sm text-stone-600">
-              لیبل در همین صفحه آماده می‌شود. برای چاپ فقط دکمه چاپ را بزنید.
-            </p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button
-              onClick={closeDialog}
-              className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm font-black text-stone-700 transition hover:bg-stone-100"
-            >
-              بستن
-            </button>
-            <button
-              onClick={handlePrint}
-              disabled={isPreparing}
-              className="rounded-2xl bg-stone-950 px-6 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary disabled:cursor-wait disabled:opacity-60"
-            >
-              {isPreparing ? 'در حال ساخت...' : 'چاپ'}
-            </button>
-          </div>
-        </div>
-
-        <div
-          id="print-label-root"
-          className="mx-auto flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white print:rounded-none"
-          style={{ width: LABEL_SIZE, height: LABEL_SIZE, maxWidth: '100%' }}
-        >
-          {pngUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              ref={printImageRef}
-              src={pngUrl}
-              alt="لیبل آماده چاپ"
-              className="block object-contain"
-              style={{ width: LABEL_SIZE, height: LABEL_SIZE }}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-right text-base font-black text-stone-500">
-              در حال ساخت PNG...
-            </div>
-          )}
-        </div>
-      </section>
+      {isPreparing ? (
+        <div className="flex items-center justify-center w-[10cm] h-[10cm] text-base text-muted-foreground">در حال ساخت PNG...</div>
+      ) : (
+        <img
+          src={pngUrl}
+          alt="پیش‌نمایش لیبل"
+          className="block rounded-xl border border-border"
+          style={{ width: '10cm', height: '10cm', objectFit: 'contain' }}
+        />
+      )}
     </div>
   );
 }
 
-export function dispatchPrintLabelDialog(data: LabelDialogData) {
-  window.dispatchEvent(new CustomEvent(PRINT_EVENT, { detail: data }));
-}
-
 function drawLabelCanvas(
   ctx: CanvasRenderingContext2D,
-  data: LabelDialogData,
+  data: LabelPreviewData,
   barcodeImage: HTMLImageElement,
   qrImage: HTMLImageElement,
 ) {
