@@ -100,25 +100,61 @@ export default function PrintLabelDialog() {
     return () => cancelAnimationFrame(frame);
   }, [buildPng, data]);
 
-  useEffect(() => {
-    if (!pendingPrint || !pngUrl) return;
+  const printToIframe = useCallback((src: string) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '-9999px';
+    iframe.style.bottom = '-9999px';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
 
-    const image = printImageRef.current;
-    if (!image) return;
-
-    const print = () => {
-      setPendingPrint(false);
-      requestAnimationFrame(() => window.print());
-    };
-
-    if (image.complete) {
-      print();
+    const win = iframe.contentWindow;
+    if (!win) {
+      document.body.removeChild(iframe);
       return;
     }
 
-    image.addEventListener('load', print, { once: true });
-    return () => image.removeEventListener('load', print);
-  }, [pendingPrint, pngUrl]);
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            @page { size: 10cm 10cm; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              width: 10cm; height: 10cm;
+              display: flex; align-items: center; justify-content: center;
+              -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            img { display: block; width: 10cm; height: 10cm; object-fit: contain; }
+          </style>
+        </head>
+        <body><img src="${src}" alt="" /></body>
+      </html>
+    `);
+    win.document.close();
+
+    const img = win.document.querySelector('img');
+    if (img) {
+      img.onload = () => {
+        win.focus();
+        win.print();
+      };
+    }
+
+    win.onafterprint = () => {
+      document.body.removeChild(iframe);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pendingPrint || !pngUrl) return;
+    setPendingPrint(false);
+    printToIframe(pngUrl);
+  }, [pendingPrint, pngUrl, printToIframe]);
 
   const handlePrint = async () => {
     if (!pngUrl) {
@@ -127,7 +163,7 @@ export default function PrintLabelDialog() {
       return;
     }
 
-    requestAnimationFrame(() => window.print());
+    printToIframe(pngUrl);
   };
 
   if (!data) return null;
@@ -265,7 +301,6 @@ function drawLabelCanvas(
   ctx.lineTo(730, 445);
   ctx.stroke();
 
-  // Barcode sits on the left of the QR code, as requested.
   drawImageContained(ctx, barcodeImage, 58, 492, 425, 170);
   drawImageContained(ctx, qrImage, 520, 470, 210, 210);
 

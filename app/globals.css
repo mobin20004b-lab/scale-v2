@@ -91,6 +91,9 @@ body.print-label-page {
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    width: 10cm !important;
+    height: 10cm !important;
+    overflow: hidden !important;
   }
 
   body.print-label-page * {

@@ -2,8 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import Barcode from 'react-barcode';
-import { QRCodeSVG } from 'qrcode.react';
 import { printLabel } from '@/lib/label-print';
 import {
   Package,
@@ -17,7 +15,6 @@ import {
   ChevronUp,
   LogOut,
   Printer,
-  FileText,
 } from 'lucide-react';
 
 interface Lot {
@@ -68,7 +65,6 @@ export default function ProductsManagement() {
   const [lotCreatedAt, setLotCreatedAt] = useState('');
   const [isLotSaving, setIsLotSaving] = useState(false);
 
-  const [receiptLot, setReceiptLot] = useState<(Lot & { productName: string; productUnit: string }) | null>(null);
   const [companyName, setCompanyName] = useState('نساجی زنبق');
 
   const fetchProducts = async () => {
@@ -535,11 +531,22 @@ export default function ProductsManagement() {
                                             <Edit className="w-4 h-4" />
                                           </button>
                                           <button
-                                            onClick={() => setReceiptLot({ ...lot, productName: product.name, productUnit: product.unit })}
+                                            onClick={() => printLabel({
+                                              companyName,
+                                              productName: product.name,
+                                              quantity: lot.quantity,
+                                              grossWeight: lot.quantity,
+                                              netWeight: lot.quantity,
+                                              unit: product.unit,
+                                              lotNumber: lot.lotNumber,
+                                              createdAt: lot.createdAt,
+                                              barcode: lot.barcode,
+                                              qrCode: lot.qrCode,
+                                            })}
                                             className="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                                            title="نمایش رسید چاپ"
+                                            title="چاپ لیبل"
                                           >
-                                            <FileText className="w-4 h-4" />
+                                            <Printer className="w-4 h-4" />
                                           </button>
                                         </div>
                                       </td>
@@ -616,60 +623,6 @@ export default function ProductsManagement() {
         </div>
       )}
 
-      {receiptLot && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 print:static print:bg-transparent print:p-0">
-          <div className="w-full max-w-3xl bg-card border border-border rounded-2xl p-6 print:max-w-none print:border-none print:p-0 print:bg-transparent">
-            <div className="flex justify-between items-center mb-6 print:hidden">
-              <h3 className="text-xl font-bold">پیش‌نمایش رسید لات</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    await printLabel({
-                      companyName,
-                      productName: receiptLot.productName,
-                      quantity: receiptLot.quantity,
-                      grossWeight: receiptLot.quantity,
-                      netWeight: receiptLot.quantity,
-                      unit: receiptLot.productUnit,
-                      lotNumber: receiptLot.lotNumber,
-                      createdAt: receiptLot.createdAt,
-                      barcode: receiptLot.barcode,
-                      qrCode: receiptLot.qrCode,
-                    });
-                  }}
-                  className="bg-primary text-primary-foreground rounded-xl px-4 py-2 flex items-center gap-2"
-                >
-                  <Printer className="w-4 h-4" />
-                  چاپ
-                </button>
-                <button onClick={() => setReceiptLot(null)} className="px-4 py-2 rounded-xl hover:bg-secondary">
-                  بستن
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center space-y-4 bg-white p-6 rounded-2xl border border-border sm:w-[10cm] sm:h-[15cm] mx-auto text-black print:w-[10cm] print:h-[15cm] print:border-none print:bg-white print:m-0 print:p-0">
-              <h1 className="text-4xl font-extrabold text-center">{companyName}</h1>
-              <h1 className="text-2xl font-bold text-center">{receiptLot.productName}</h1>
-              <p className="text-2xl font-semibold">
-                وزن ناخالص: {receiptLot.quantity} {receiptLot.productUnit}
-              </p>
-              <p className="text-2xl font-semibold">
-                وزن خالص: {receiptLot.quantity} {receiptLot.productUnit}
-              </p>
-              <p className="text-base text-gray-700" dir="ltr">
-                {new Date(receiptLot.createdAt).toLocaleString('fa-IR')}
-              </p>
-              <div className="py-2 scale-125">
-                <Barcode value={receiptLot.barcode} width={2.5} height={80} fontSize={18} displayValue />
-              </div>
-              <div className="pt-2">
-                <QRCodeSVG value={receiptLot.qrCode} size={160} level="M" includeMargin />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
