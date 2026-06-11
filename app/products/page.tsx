@@ -122,10 +122,6 @@ export default function ProductsManagement() {
         setBarcode('');
         setCategory('');
         setUnit('kg');
-    setSpoolsPerBag('12');
-    setSpoolWeight('0');
-    setBagWeight('0');
-    setBrandName('نساجی زنبق');
         setSpoolsPerBag('12');
         setSpoolWeight('0');
         setBagWeight('0');
@@ -266,7 +262,19 @@ export default function ProductsManagement() {
           <p className="text-muted-foreground mt-1">مدیریت کاتالوگ محصولات، لات‌ها و رسید چاپ.</p>
         </div>
         <button
-          onClick={() => setIsAdding(true)}
+          onClick={() => {
+            setEditingProduct(null);
+            setName('');
+            setDescription('');
+            setBarcode('');
+            setCategory('');
+            setUnit('kg');
+            setSpoolsPerBag('12');
+            setSpoolWeight('0');
+            setBagWeight('0');
+            setBrandName('نساجی زنبق');
+            setIsAdding(true);
+          }}
           className="bg-primary text-primary-foreground font-medium rounded-xl px-4 py-2 hover:bg-primary/90 transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
