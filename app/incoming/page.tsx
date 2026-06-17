@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Barcode from 'react-barcode';
-import { QRCodeSVG } from 'qrcode.react';
 import { AlertCircle, CheckCircle2, Loader2, Printer, RefreshCcw } from 'lucide-react';
 import { printLabel } from '@/lib/label-print';
 import { calculateNetWeight } from '@/lib/net-weight';
+import LabelPreview from '@/components/LabelPreview';
 
 type Product = {
   id: string;
@@ -306,23 +305,21 @@ export default function IncomingGoods() {
             </button>
           </div>
 
-          <div className="flex flex-col items-center justify-center space-y-4 bg-white p-6 rounded-2xl border border-border sm:w-[10cm] sm:h-[15cm] mx-auto text-black print:w-[10cm] print:h-[15cm] print:border-none print:bg-white print:m-0 print:p-0">
-            <h1 className="text-4xl font-extrabold text-center">{companyName}</h1>
-            <h1 className="text-2xl font-bold text-center">{selectedProduct?.brandName ? `${selectedProduct.brandName} - ${products.find((p) => p.id === generatedLot.productId)?.name}` : products.find((p) => p.id === generatedLot.productId)?.name}</h1>
-            <p className="text-2xl font-semibold">وزن ناخالص: {Number(weight || selectedScale?.currentWeight || generatedLot.quantity)} {selectedProduct?.unit || 'kg'}</p>
-            <p className="text-2xl font-semibold">وزن خالص: {generatedLot.quantity} {selectedProduct?.unit || 'kg'}</p>
-            <p className="text-base text-gray-700" dir="ltr">
-              {new Date(generatedLot.createdAt).toLocaleString('fa-IR')}
-            </p>
-
-            <div className="py-2 scale-125">
-              <Barcode value={generatedLot.barcode} width={2.5} height={80} fontSize={18} displayValue />
-            </div>
-
-            <div className="pt-2">
-              <QRCodeSVG value={generatedLot.qrCode} size={160} level="M" includeMargin />
-            </div>
-          </div>
+          <LabelPreview
+            data={{
+              companyName,
+              productName: selectedProduct?.brandName
+                ? `${selectedProduct.brandName} - ${products.find((p) => p.id === generatedLot.productId)?.name}`
+                : products.find((p) => p.id === generatedLot.productId)?.name || '-',
+              grossWeight: Number(weight || selectedScale?.currentWeight || generatedLot.quantity),
+              netWeight: generatedLot.quantity,
+              unit: selectedProduct?.unit || 'kg',
+              lotNumber: generatedLot.lotNumber,
+              createdAt: generatedLot.createdAt,
+              barcode: generatedLot.barcode,
+              qrCode: generatedLot.qrCode,
+            }}
+          />
         </div>
       )}
     </div>

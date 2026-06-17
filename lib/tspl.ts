@@ -28,29 +28,29 @@ export function buildTSPL(content: LabelContent): string {
   lines.push(`BAR 20,${y},460,2,0`);
   y += 20;
 
-  lines.push(`QRCODE 300,${y},H,5,A,0,"${escapeTSPL(content.qrCode)}"`);
-  lines.push(`TEXT 20,${y},"3",0,1,1,"${escapeTSPL(content.productName)}"`);
-  y += 45;
+  lines.push(`TEXT 115,${y},"3",0,2,2,"${escapeTSPL(content.productName)}"`);
+  y += 90;
 
-  lines.push(`TEXT 20,${y},"2",0,1,1,"${escapeTSPL(`وزن ناخالص: ${content.grossWeight} ${content.unit}`)}"`);
-  y += 35;
+  lines.push(`TEXT 95,${y},"3",0,1,2,"${escapeTSPL(`وزن ناخالص: ${content.grossWeight} ${content.unit}`)}"`);
+  y += 55;
 
-  lines.push(`TEXT 20,${y},"2",0,1,1,"${escapeTSPL(`وزن خالص: ${content.netWeight} ${content.unit}`)}"`);
-  y += 50;
-
-  lines.push(`BAR 20,${y},460,2,0`);
-  y += 20;
-
-  lines.push(`BARCODE 20,${y},"128",40,1,0,2,2,"${escapeTSPL(content.barcode)}"`);
+  lines.push(`TEXT 115,${y},"3",0,1,2,"${escapeTSPL(`وزن خالص: ${content.netWeight} ${content.unit}`)}"`);
   y += 65;
-
-  lines.push(`TEXT 20,${y},"2",0,1,1,"${escapeTSPL(`شماره بچ: ${content.lotNumber}`)}"`);
-  y += 35;
 
   const formattedDate = content.createdAt
     ? new Date(content.createdAt).toLocaleString('fa-IR')
     : '-';
-  lines.push(`TEXT 20,${y},"2",0,1,1,"${escapeTSPL(formattedDate)}"`);
+  lines.push(`BAR 20,${y},460,2,0`);
+  y += 30;
+
+  // Barcode is placed to the left of the QR code. Batch/lot text is intentionally omitted.
+  lines.push(`BARCODE 20,${y},"128",48,1,0,2,2,"${escapeTSPL(content.barcode)}"`);
+  lines.push(`QRCODE 330,${y - 10},H,5,A,0,"${escapeTSPL(content.qrCode)}"`);
+
+  y = 705;
+  lines.push(`BAR 20,${y},460,2,0`);
+  y += 30;
+  lines.push(`TEXT 145,${y},"2",0,2,2,"${escapeTSPL(formattedDate)}"`);
 
   lines.push('PRINT 1,1');
 
