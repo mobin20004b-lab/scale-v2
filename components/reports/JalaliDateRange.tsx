@@ -1,76 +1,62 @@
 'use client';
 
-import { useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Calendar, X } from 'lucide-react';
+import { format } from 'date-fns-jalali';
+import JalaliCalendar from './JalaliCalendar';
 
 type JalaliDateRangeProps = {
-  startDate: string;   // Gregorian ISO string or ''
-  endDate: string;     // Gregorian ISO string or ''
+  startDate: string;
+  endDate: string;
   onChange: (start: string, end: string) => void;
 };
 
-function gregorianToJalaliInput(date: Date): string {
+function formatJalali(isoStr: string): string {
+  if (!isoStr) return '';
   try {
-    const { format } = require('date-fns-jalali');
-    return format(date, 'yyyy/MM/dd');
+    return format(new Date(isoStr), 'yyyy/MM/dd');
   } catch {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}/${m}/${d}`;
+    return '';
   }
 }
 
-function jalaliInputToGregorian(input: string): Date | null {
+function parseIso(isoStr: string): Date | null {
+  if (!isoStr) return null;
   try {
-    const { parse } = require('date-fns-jalali');
-    const parsed = parse(input, 'yyyy/MM/dd', new Date());
-    if (isNaN(parsed.getTime())) return null;
-    return parsed;
+    const d = new Date(isoStr);
+    return isNaN(d.getTime()) ? null : d;
   } catch {
     return null;
   }
 }
 
-const JALALI_PATTERN = /^\d{4}\/\d{2}\/\d{2}$/;
-
 export default function JalaliDateRange({ startDate, endDate, onChange }: JalaliDateRangeProps) {
-  const [startInput, setStartInput] = useState(startDate ? gregorianToJalaliInput(new Date(startDate)) : '');
-  const [endInput, setEndInput] = useState(endDate ? gregorianToJalaliInput(new Date(endDate)) : '');
-  const [startError, setStartError] = useState(false);
-  const [endError, setEndError] = useState(false);
+  const [openField, setOpenField] = useState<'start' | 'end' | null>(null);
+  const startRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  const handleStartChange = (value: string) => {
-    setStartInput(value);
-    if (value && !JALALI_PATTERN.test(value)) {
-      setStartError(true);
-      return;
-    }
-    setStartError(false);
-    if (value) {
-      const date = jalaliInputToGregorian(value);
-      if (date) {
-        onChange(date.toISOString(), endDate);
-        return;
-      }
-    }
+  const startValue = parseIso(startDate);
+  const endValue = parseIso(endDate);
+  const startLabel = formatJalali(startDate);
+  const endLabel = formatJalali(endDate);
+
+  const handleStartChange = useCallback((date: Date) => {
+    onChange(date.toISOString(), endDate);
+    setOpenField(null);
+  }, [endDate, onChange]);
+
+  const handleEndChange = useCallback((date: Date) => {
+    onChange(startDate, date.toISOString());
+    setOpenField(null);
+  }, [startDate, onChange]);
+
+  const clearStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onChange('', endDate);
   };
 
-  const handleEndChange = (value: string) => {
-    setEndInput(value);
-    if (value && !JALALI_PATTERN.test(value)) {
-      setEndError(true);
-      return;
-    }
-    setEndError(false);
-    if (value) {
-      const date = jalaliInputToGregorian(value);
-      if (date) {
-        onChange(startDate, date.toISOString());
-        return;
-      }
-    }
+  const clearEnd = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onChange(startDate, '');
   };
 
@@ -78,29 +64,80 @@ export default function JalaliDateRange({ startDate, endDate, onChange }: Jalali
     <div className="flex flex-col gap-1">
       <label className="block text-xs text-muted-foreground">محدوده تاریخ (شمسی)</label>
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <input
-            value={endInput}
-            onChange={(e) => handleEndChange(e.target.value)}
-            placeholder="۱۴۰۴/۱۲/۲۹"
-            className={`h-10 w-full rounded-[var(--radius-input)] border px-3 py-2 text-sm bg-background pl-8 ${endError ? 'border-destructive ring-1 ring-destructive/30' : 'border-input'}`}
-          />
-          <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        {/* End date (first in RTL) */}
+        <div ref={endRef} className="relative flex-1">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setOpenField(openField === 'end' ? null : 'end')}
+            onKeyDown={(e) => { if (e.key === 'Enter') setOpenField(openField === 'end' ? null : 'end'); }}
+            className={`flex items-center h-10 w-full rounded-[var(--radius-input)] border bg-background px-3 py-2 text-sm cursor-pointer ${
+              endDate ? 'border-input' : 'border-input'
+            }`}
+          >
+            <span className={`flex-1 ${endDate ? '' : 'text-muted-foreground/80'}`}>
+              {endLabel || 'تاریخ پایان'}
+            </span>
+            {endDate && (
+              <button
+                type="button"
+                onClick={clearEnd}
+                className="text-muted-foreground hover:text-foreground ml-1"
+                aria-label="پاک کردن تاریخ پایان"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+          </div>
+          {openField === 'end' && (
+            <JalaliCalendar
+              value={endValue}
+              onChange={handleEndChange}
+              onClose={() => setOpenField(null)}
+              minDate={startValue}
+            />
+          )}
         </div>
+
         <span className="text-muted-foreground text-sm">تا</span>
-        <div className="relative flex-1">
-          <input
-            value={startInput}
-            onChange={(e) => handleStartChange(e.target.value)}
-            placeholder="۱۴۰۴/۰۱/۰۱"
-            className={`h-10 w-full rounded-[var(--radius-input)] border px-3 py-2 text-sm bg-background pl-8 ${startError ? 'border-destructive ring-1 ring-destructive/30' : 'border-input'}`}
-          />
-          <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+
+        {/* Start date */}
+        <div ref={startRef} className="relative flex-1">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setOpenField(openField === 'start' ? null : 'start')}
+            onKeyDown={(e) => { if (e.key === 'Enter') setOpenField(openField === 'start' ? null : 'start'); }}
+            className={`flex items-center h-10 w-full rounded-[var(--radius-input)] border bg-background px-3 py-2 text-sm cursor-pointer ${
+              startDate ? 'border-input' : 'border-input'
+            }`}
+          >
+            <span className={`flex-1 ${startDate ? '' : 'text-muted-foreground/80'}`}>
+              {startLabel || 'تاریخ شروع'}
+            </span>
+            {startDate && (
+              <button
+                type="button"
+                onClick={clearStart}
+                className="text-muted-foreground hover:text-foreground ml-1"
+                aria-label="پاک کردن تاریخ شروع"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+          </div>
+          {openField === 'start' && (
+            <JalaliCalendar
+              value={startValue}
+              onChange={handleStartChange}
+              onClose={() => setOpenField(null)}
+              maxDate={endValue}
+            />
+          )}
         </div>
       </div>
-      {(startError || endError) && (
-        <p className="text-xs text-destructive">فرمت تاریخ باید YYYY/MM/DD باشد</p>
-      )}
     </div>
   );
 }

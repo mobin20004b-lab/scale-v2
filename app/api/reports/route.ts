@@ -12,6 +12,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
+  const transactionType = searchParams.get('transactionType');
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const customerId = searchParams.get('customerId');
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   const productId = searchParams.get('productId');
   const operatorId = searchParams.get('operatorId');
   const search = searchParams.get('search')?.trim();
+  const isExport = searchParams.get('export') === 'true';
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
   const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '10', 10)));
 
@@ -37,6 +39,10 @@ export async function GET(request: Request) {
       where.createdAt = createdAt;
     }
 
+    if (transactionType && transactionType !== 'ALL') {
+      where.type = transactionType;
+    }
+
     if (customerId) where.customerId = customerId;
     if (warehouseId) where.warehouseId = warehouseId;
     if (productId) where.productId = productId;
@@ -53,7 +59,7 @@ export async function GET(request: Request) {
     // Get total count for pagination
     const total = await prisma.inventoryLedger.count({ where: where as any });
 
-    // Fetch paginated data
+    // Fetch paginated data (all rows for export)
     const ledgers = await prisma.inventoryLedger.findMany({
       where: where as any,
       include: {
@@ -63,8 +69,7 @@ export async function GET(request: Request) {
         customerOrder: { select: { id: true, status: true, paymentStatus: true } },
       },
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      ...(isExport ? {} : { skip: (page - 1) * pageSize, take: pageSize }),
     });
 
     // Resolve creator names
@@ -93,6 +98,10 @@ export async function GET(request: Request) {
         ? creatorsById.get(ledger.createdBy) || ledger.createdBy
         : '—',
     }));
+
+    if (isExport) {
+      return NextResponse.json({ rows, total });
+    }
 
     // Compute filtered totals (separate aggregation query)
     const aggregation = await prisma.inventoryLedger.aggregate({

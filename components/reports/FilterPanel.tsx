@@ -66,7 +66,7 @@ export default function FilterPanel({ values, onChange, onReset }: FilterPanelPr
   };
 
   return (
-    <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+    <div className="bg-card rounded-3xl border border-border shadow-sm">
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="w-full flex items-center justify-between p-4 md:p-5 text-sm font-medium hover:bg-secondary/10 transition-colors"
