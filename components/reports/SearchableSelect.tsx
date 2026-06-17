@@ -82,8 +82,8 @@ export default function SearchableSelect({
     if (!wrapperRef.current || !optionsRef.current) return;
 
     const updatePosition = () => {
-      const wrapperRect = wrapperRef.current.getBoundingClientRect();
-      const optionsHeight = optionsRef.current.offsetHeight;
+      const wrapperRect = wrapperRef.current!.getBoundingClientRect();
+      const optionsHeight = optionsRef.current!.offsetHeight;
       const viewportHeight = window.innerHeight;
       
       const spaceBelow = viewportHeight - wrapperRect.bottom;
@@ -99,8 +99,8 @@ export default function SearchableSelect({
 
     updatePosition();
     const resizeObserver = new ResizeObserver(updatePosition);
-    resizeObserver.observe(wrapperRef.current);
-    resizeObserver.observe(optionsRef.current);
+    resizeObserver.observe(wrapperRef.current!);
+    resizeObserver.observe(optionsRef.current!);
     
     window.addEventListener('resize', updatePosition);
     return () => {
