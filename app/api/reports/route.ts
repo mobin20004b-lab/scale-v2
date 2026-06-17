@@ -14,76 +14,124 @@ export async function GET(request: Request) {
   const type = searchParams.get('type');
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
+  const customerId = searchParams.get('customerId');
+  const warehouseId = searchParams.get('warehouseId');
+  const productId = searchParams.get('productId');
+  const operatorId = searchParams.get('operatorId');
+  const search = searchParams.get('search')?.trim();
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '10', 10)));
 
   try {
-    let dateFilter = {};
-    if (startDate && endDate) {
-      dateFilter = {
-        createdAt: {
-          gte: new Date(startDate),
-          lte: new Date(endDate),
-        }
-      };
+    if (type !== 'inventory') {
+      return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
     }
 
-    if (type === 'inventory') {
-      const ledgers = await prisma.inventoryLedger.findMany({
-        where: dateFilter,
-        include: {
-          product: { select: { name: true } },
-          warehouse: { select: { name: true } },
-          customer: { select: { id: true, name: true } },
-          customerOrder: { select: { id: true, status: true, paymentStatus: true } },
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+    // Build dynamic where clause
+    const where: Record<string, unknown> = {};
 
-      const creatorIds = Array.from(
-        new Set(
-          ledgers
-            .map((ledger) => ledger.createdBy)
-            .filter((value): value is string => Boolean(value) && value !== 'EXTERNAL_API'),
-        ),
-      );
-
-      const creators = creatorIds.length
-        ? await prisma.user.findMany({
-            where: { id: { in: creatorIds } },
-            select: { id: true, name: true, username: true },
-          })
-        : [];
-
-      const creatorsById = new Map(
-        creators.map((creator) => [creator.id, creator.name || creator.username]),
-      );
-
-      const reportRows = ledgers.map((ledger) => ({
-        ...ledger,
-        operatorName: ledger.createdBy ? creatorsById.get(ledger.createdBy) || ledger.createdBy : '—',
-      }));
-
-      return NextResponse.json(reportRows);
-    } else if (type === 'low-stock') {
-      // Basic low stock report
-      const inventory = await prisma.inventoryLedger.groupBy({
-        by: ['productId', 'warehouseId'],
-        _sum: {
-          quantity: true,
-          weight: true,
-        },
-        where: {
-          type: {
-            in: ['STOCK_IN', 'STOCK_IN_UNDO', 'STOCK_OUT', 'STOCK_OUT_UNDO']
-          }
-        }
-      });
-      // Filter out those with low stock (e.g., < 10)
-      const lowStock = inventory.filter((i: (typeof inventory)[number]) => (i._sum.quantity || 0) < 10);
-      return NextResponse.json(lowStock);
+    if (startDate || endDate) {
+      const createdAt: Record<string, Date> = {};
+      if (startDate) createdAt.gte = new Date(startDate);
+      if (endDate) createdAt.lte = new Date(endDate);
+      where.createdAt = createdAt;
     }
 
-    return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
+    if (customerId) where.customerId = customerId;
+    if (warehouseId) where.warehouseId = warehouseId;
+    if (productId) where.productId = productId;
+    if (operatorId) where.createdBy = operatorId;
+
+    if (search) {
+      where.OR = [
+        { product: { name: { contains: search, mode: 'insensitive' } } },
+        { warehouse: { name: { contains: search, mode: 'insensitive' } } },
+        { customer: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Get total count for pagination
+    const total = await prisma.inventoryLedger.count({ where: where as any });
+
+    // Fetch paginated data
+    const ledgers = await prisma.inventoryLedger.findMany({
+      where: where as any,
+      include: {
+        product: { select: { name: true } },
+        warehouse: { select: { name: true } },
+        customer: { select: { id: true, name: true } },
+        customerOrder: { select: { id: true, status: true, paymentStatus: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+
+    // Resolve creator names
+    const creatorIds = Array.from(
+      new Set(
+        ledgers
+          .map((l) => l.createdBy)
+          .filter((v): v is string => Boolean(v) && v !== 'EXTERNAL_API'),
+      ),
+    );
+
+    const creators = creatorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: creatorIds } },
+          select: { id: true, name: true, username: true },
+        })
+      : [];
+
+    const creatorsById = new Map(
+      creators.map((c) => [c.id, c.name || c.username]),
+    );
+
+    const rows = ledgers.map((ledger) => ({
+      ...ledger,
+      operatorName: ledger.createdBy
+        ? creatorsById.get(ledger.createdBy) || ledger.createdBy
+        : '—',
+    }));
+
+    // Compute filtered totals (separate aggregation query)
+    const aggregation = await prisma.inventoryLedger.aggregate({
+      where: where as any,
+      _sum: { weight: true, quantity: true },
+      _count: true,
+    });
+
+    const totals = {
+      incoming: 0,
+      outgoing: 0,
+      transactions: aggregation._count || 0,
+    };
+
+    // For accurate incoming/outgoing, sum separately by type
+    const byType = await prisma.inventoryLedger.groupBy({
+      by: ['type'],
+      where: { ...where as any, type: { in: ['STOCK_IN', 'STOCK_OUT'] } },
+      _sum: { weight: true },
+    });
+
+    for (const entry of byType) {
+      const val = entry._sum.weight ?? 0;
+      if (entry.type === 'STOCK_IN') totals.incoming += val;
+      if (entry.type === 'STOCK_OUT') totals.outgoing += val;
+    }
+
+    return NextResponse.json({
+      rows,
+      totals,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
   } catch (error) {
+    console.error('Report API error:', error);
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 });
   }
 }
