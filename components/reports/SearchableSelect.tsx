@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useId } from 'react';
+import { useState, useRef, useEffect, useCallback, useId, useLayoutEffect } from 'react';
 import { Search, X, ChevronDown, Loader2 } from 'lucide-react';
 
 type Option = { value: string; label: string };
@@ -28,6 +28,7 @@ export default function SearchableSelect({
   const [loading, setLoading] = useState(false);
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [position, setPosition] = useState<'bottom' | 'top'>('bottom');
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
@@ -75,6 +76,38 @@ export default function SearchableSelect({
       inputRef.current.focus();
     }
   }, [open]);
+
+  // Detect viewport boundaries for dropdown positioning
+  useLayoutEffect(() => {
+    if (!wrapperRef.current || !optionsRef.current) return;
+
+    const updatePosition = () => {
+      const wrapperRect = wrapperRef.current.getBoundingClientRect();
+      const optionsHeight = optionsRef.current.offsetHeight;
+      const viewportHeight = window.innerHeight;
+      
+      const spaceBelow = viewportHeight - wrapperRect.bottom;
+      const spaceAbove = wrapperRect.top;
+      
+      // Prefer bottom position, but flip to top if not enough space below
+      if (spaceBelow < optionsHeight && spaceAbove > optionsHeight) {
+        setPosition('top');
+      } else {
+        setPosition('bottom');
+      }
+    };
+
+    updatePosition();
+    const resizeObserver = new ResizeObserver(updatePosition);
+    resizeObserver.observe(wrapperRef.current);
+    resizeObserver.observe(optionsRef.current);
+    
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -175,7 +208,9 @@ export default function SearchableSelect({
           id={`${comboboxId}-listbox`}
           role="listbox"
           aria-live="polite"
-          className="absolute z-20 mt-1 w-full rounded-xl border border-border bg-card shadow-overlay overflow-hidden"
+          className={`absolute z-50 w-full rounded-xl border border-border bg-card shadow-xl overflow-hidden ${
+            position === 'bottom' ? 'mt-1' : '-mt-1'
+          }`}
         >
           <div className="relative border-b border-border">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -189,7 +224,7 @@ export default function SearchableSelect({
               autoComplete="off"
             />
           </div>
-          <div className="max-h-48 overflow-y-auto" role="listbox">
+          <div className="max-h-60 overflow-y-auto" role="listbox">
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-4 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -206,7 +241,9 @@ export default function SearchableSelect({
                   id={`${comboboxId}-option-${idx}`}
                   onClick={() => selectOption(opt)}
                   onMouseEnter={() => setActiveIndex(idx)}
-                  className={`w-full text-right px-3 py-2.5 text-sm hover:bg-secondary/40 transition-colors ${value === opt.value ? 'bg-primary text-primary-foreground font-medium' : ''} ${activeIndex === idx ? 'bg-secondary/40' : ''}`}
+                  className={`w-full text-right px-3 py-2.5 text-sm hover:bg-secondary/40 transition-colors ${
+                    value === opt.value ? 'bg-primary text-primary-foreground font-medium' : ''
+                  } ${activeIndex === idx ? 'bg-secondary/40' : ''}`}
                 >
                   {opt.label}
                 </button>
